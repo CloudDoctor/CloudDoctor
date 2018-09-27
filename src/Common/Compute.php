@@ -90,18 +90,16 @@ class Compute extends Entity
     public function sshRunDebug(string $command): string
     {
         CloudDoctor::Monolog()->addDebug("        │├┬ {$this->getName()} Running '{$command}':");
-        $output = '';
         $response = $this->sshRun($command);
         if (!empty(trim($response))) {
             $lines = explode("\n", $response);
             foreach ($lines as $line) {
                 $line = trim($line);
                 if (!empty($line)) {
-                    $output.= "     | {$line}\n";
+                    CloudDoctor::Monolog()->addDebug("        ││└ {$line}");
                 }
             }
         }
-        CloudDoctor::Monolog()->addDebug("        ││└ {$output}");
 
         return $response;
     }

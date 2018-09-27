@@ -58,7 +58,7 @@ class CloudDoctor
         return $passwordGenerator->generatePassword();
     }
 
-    public function assertFromFile(string $fileName, string $overrideFileName = null)
+    public function assertFromFile(string $fileName, string $overrideFileName = null, string $automaticControlOverrideFile = null)
     {
         if (!file_exists($fileName)) {
             throw new CloudDefinitionException("Cannot find definition file \"{$fileName}\"!");
@@ -68,6 +68,11 @@ class CloudDoctor
         if ($overrideFileName && file_exists($overrideFileName)) {
             $cloudOverrideDefinition = \Symfony\Component\Yaml\Yaml::parseFile($overrideFileName);
             $cloudDefinition = $this->arrayOverwrite($cloudDefinition, $cloudOverrideDefinition);
+        }
+
+        if ($automaticControlOverrideFile && file_exists($automaticControlOverrideFile)) {
+            $automaticControlOverrideDefinition = \Symfony\Component\Yaml\Yaml::parseFile($automaticControlOverrideFile);
+            $cloudDefinition = $this->arrayOverwrite($cloudDefinition, $automaticControlOverrideDefinition);
         }
 
         $this->assert($cloudDefinition);
@@ -100,14 +105,9 @@ class CloudDoctor
         }
         $this->setupMonolog($cloudDefinition['logging']);
         $this->validateDefinition($cloudDefinition);
-        #\Kint::dump($cloudDefinition);
         $this->createRequesters($cloudDefinition['credentials']);
         $this->createDnsControllers($cloudDefinition['credentials']);
         $this->createInstances($cloudDefinition['instances'], $cloudDefinition['authorized-keys']);
-        #\Kint::dump(
-        #    self::$requesters,
-        #    self::$computeGroups
-        #);
         $this->deploy();
     }
 

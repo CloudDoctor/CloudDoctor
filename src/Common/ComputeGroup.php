@@ -328,36 +328,36 @@ class ComputeGroup extends Entity
         $this->generateTlsCleanup($masterCompute);
 
         // Making a CA...
-        CloudDoctor::Monolog()->addDebug("         ├┬ Generating CA certificate");
+        CloudDoctor::Monolog()->addDebug("        ││├┬ Generating CA certificate");
         $masterCompute->sshRun("openssl genrsa -aes256 -passout pass:{$caPassword} -out ca-key.pem 4096");
         $masterCompute->sshRun("openssl req -new -x509 -passin pass:{$caPassword} -days 365 -key ca-key.pem -sha256 -out ca.pem -subj \"{$this->tls['subject']}\"");
         $masterCompute->sshRun("chmod -v 0444 ca.pem");
-        $masterCompute->sshDownloadFile("ca.pem", "ca.pem");
-        CloudDoctor::Monolog()->addDebug("          └ Downloaded ca.pem");
+        $masterCompute->sshDownloadFile("ca.pem", "config/ca.pem");
+        CloudDoctor::Monolog()->addDebug("        │││└ Downloaded ca.pem");
 
         // Making a server cert
-        CloudDoctor::Monolog()->addDebug("         ├┬ Generating server certificate");
+        CloudDoctor::Monolog()->addDebug("        ││├┬ Generating server certificate");
         $masterCompute->sshRun("openssl genrsa -out server-key.pem 4096");
         $masterCompute->sshRun("openssl req -subj \"/CN={$this->tls['common-name']}\" -sha256 -new -key server-key.pem -out server.csr");
-        $masterCompute->sshRun("echo subjectAltName = DNSController:{$this->tls['common-name']},{$ips} >> extfile.server.cnf");
+        $masterCompute->sshRun("echo subjectAltName = DNS:{$this->tls['common-name']},{$ips} >> extfile.server.cnf");
         $masterCompute->sshRun("echo extendedKeyUsage = serverAuth >> extfile.server.cnf");
         $masterCompute->sshRun("cat extfile.server.cnf");
         $masterCompute->sshRun("openssl x509 -req -days 365 -sha256 -in server.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out server-cert.pem -extfile extfile.server.cnf -passin pass:{$caPassword}");
         $masterCompute->sshRun("chmod -v 0444 server-cert.pem server-key.pem");
-        $masterCompute->sshDownloadFile("server-cert.pem", "server-cert.pem");
-        $masterCompute->sshDownloadFile("server-key.pem", "server-key.pem");
-        CloudDoctor::Monolog()->addDebug("          └ Downloaded server-cert.pem server-key.pem");
+        $masterCompute->sshDownloadFile("server-cert.pem", "config/server-cert.pem");
+        $masterCompute->sshDownloadFile("server-key.pem", "config/server-key.pem");
+        CloudDoctor::Monolog()->addDebug("        │││└ Downloaded server-cert.pem server-key.pem");
 
         // Now making a client cert
-        CloudDoctor::Monolog()->addDebug("         └┬ Generating client certificate");
+        CloudDoctor::Monolog()->addDebug("        ││├┬ Generating client certificate");
         $masterCompute->sshRun("openssl genrsa -out key.pem 4096");
-        $masterCompute->sshRun("openssl req -subj '/CN=client' -new -key key.pem -out client.csr");
+        $masterCompute->sshRun("openssl req -subj '/CN=client' -new -key client-key.pem -out client.csr");
         $masterCompute->sshRun("echo extendedKeyUsage = clientAuth >> extfile.client.cnf");
-        $masterCompute->sshRun("openssl x509 -req -days 365 -sha256 -in client.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out cert.pem -extfile extfile.client.cnf -passin pass:{$caPassword}");
+        $masterCompute->sshRun("openssl x509 -req -days 365 -sha256 -in client.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out client-cert.pem -extfile extfile.client.cnf -passin pass:{$caPassword}");
         $masterCompute->sshRun("chmod -v 0444 cert.pem");
-        $masterCompute->sshDownloadFile("cert.pem", "client-cert.pem");
-        $masterCompute->sshDownloadFile("key.pem", "client-key.pem");
-        CloudDoctor::Monolog()->addDebug("          └ Downloaded client-cert.pem & client-key.pem");
+        $masterCompute->sshDownloadFile("client-cert.pem", "config/client-cert.pem");
+        $masterCompute->sshDownloadFile("client-key.pem", "config/client-key.pem");
+        CloudDoctor::Monolog()->addDebug("        │││└ Downloaded client-cert.pem & client-key.pem");
 
         // Post generation cleanup
         $this->generateTlsCleanup($masterCompute);
@@ -379,20 +379,26 @@ class ComputeGroup extends Entity
 
     public function setHostNames()
     {
+        CloudDoctor::Monolog()->addDebug("        │");
         if ($this->getCompute()) {
             foreach ($this->getCompute() as $compute) {
+                CloudDoctor::Monolog()->addDebug("        ├┬ Hostname check: {$compute->getName()}");
                 $currentHostname = $compute->sshRun("cat /etc/hostname");
                 $newHostname = $compute->getHostName();
+                CloudDoctor::Monolog()->addDebug("        │├ Should be '{$newHostname}'.");
                 if ($currentHostname != $newHostname) {
                     // Set hostname
                     $compute->sshRun("echo \"{$newHostname}\" > /etc/hostname");
                     $compute->sshRun("echo -e \"127.0.0.1\t{$newHostname}\n$(cat /etc/hosts)\" > /etc/hosts");
-                    $compute->sshUploadFile("hostname.sh", "hostname.sh");
+                    $compute->sshUploadFile("config/hostname.sh", "hostname.sh");
                     $compute->sshRun("/bin/bash hostname.sh; rm hostname.sh");
-                    CloudDoctor::Monolog()->addDebug("        ├─ Renamed '{$currentHostname}' to '{$newHostname}'...");
+                    CloudDoctor::Monolog()->addDebug("        │└ Renamed '{$currentHostname}' to '{$newHostname}'...");
+                }else{
+                    CloudDoctor::Monolog()->addDebug("        │└ Hostname already correct.");
                 }
             }
         }
+        CloudDoctor::Monolog()->addDebug("        │");
     }
 
     public function applyDockerEngineConfig()
@@ -419,19 +425,20 @@ class ComputeGroup extends Entity
                     $daemon['tlskey'] = '/etc/docker/server-key.pem';
                 }
 
+                $daemonFilePath = "config/daemon.{$compute->getName()}.json";
                 file_put_contents(
-                    "daemon.json",
+                    $daemonFilePath,
                     json_encode($daemon, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n"
                 );
 
                 $comparisonFile = tempnam("/tmp", "comparison-");
                 $compute->sshDownloadFile("/etc/docker/daemon.json", $comparisonFile);
-                if(file_get_contents("daemon.json") != file_get_contents($comparisonFile)){
-                    $compute->sshUploadFile("daemon.json", "/etc/docker/daemon.json");
+                if(file_get_contents($daemonFilePath) != file_get_contents($comparisonFile)){
+                    $compute->sshUploadFile($daemonFilePath, "/etc/docker/daemon.json");
                     if ($compute->getComputeGroup()->isTls()) {
-                        $compute->sshUploadFile("server-cert.pem", "/etc/docker/server-cert.pem");
-                        $compute->sshUploadFile("server-key.pem", "/etc/docker/server-key.pem");
-                        $compute->sshUploadFile("ca.pem", "/etc/docker/ca.pem");
+                        $compute->sshUploadFile("config/server-cert.pem", "/etc/docker/server-cert.pem");
+                        $compute->sshUploadFile("config/server-key.pem", "/etc/docker/server-key.pem");
+                        $compute->sshUploadFile("config/ca.pem", "/etc/docker/ca.pem");
                     }
 
                     if (stripos($compute->sshRun('ls -l /lib/systemd/system/docker.service'), "No such file or directory") === false) {

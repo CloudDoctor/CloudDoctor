@@ -28,8 +28,8 @@ class Swarmifier
             shuffle($workers);
         $this->managers = $managers;
         $this->workers = $workers;
-        if (file_exists("swarm-tokens.yml"))
-            $this->swarmCredentials = Yaml::parseFile("swarm-tokens.yml");
+        if (file_exists("config/swarm-tokens.yml"))
+            $this->swarmCredentials = Yaml::parseFile("config/swarm-tokens.yml");
     }
 
     public function swarmify()
@@ -72,7 +72,7 @@ class Swarmifier
         CloudDoctor::Monolog()->addDebug("        │├┬ Buzzing up {$compute->getName()} ( {$compute->getHostName()} )...");
 
         if ($type == 'manager') {
-            if (!$this->swarmCredentials) {
+            if (!$this->swarmCredentials && $this->swarmCredentials['ClusterId'] != '') {
                 $compute->sshRun("docker swarm leave -f");
                 $compute->sshRun("docker swarm init --force-new-cluster");
                 $this->swarmCredentials['ClusterId'] = $compute->sshRun('docker info 2>/dev/null | grep ClusterID | awk \'{$1=$1};1\' | cut -d \' \' -f2');
@@ -111,7 +111,7 @@ class Swarmifier
         $output = array_filter($output);
         $output = array_values($output);
         $this->swarmCredentials[$type] = trim($output[1]);
-        file_put_contents("swarm-tokens.yml", Yaml::dump($this->swarmCredentials));
+        file_put_contents("config/swarm-tokens.yml", Yaml::dump($this->swarmCredentials));
     }
 
     protected function swarmifyWorkers()
