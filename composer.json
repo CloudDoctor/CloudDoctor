@@ -1,0 +1,36 @@
+{
+  "name": "cloud-doctor/cloud-doctor",
+  "authors": [
+    {
+      "name": "Matthew Baggett",
+      "email": "matthew@baggett.me"
+    }
+  ],
+  "require": {
+    "php": "^7.2",
+    "ext-curl": "*",
+    "ext-json": "*",
+    "kint-php/kint": "^2.2",
+    "symfony/yaml": "^4.1",
+    "guzzlehttp/guzzle": "^6.3",
+    "hackzilla/password-generator": "^1.4",
+    "phpseclib/phpseclib": "^2.0",
+    "monolog/monolog": "^1.23"
+  },
+  "suggest": {
+    "cloud-doctor/provider-linode": "Allow using Linode as a Cloud Compute/DNS provider",
+    "rahimi/monolog-telegram": "Allow sending log messages to a Telegram Channel",
+    "sentry/sentry": "Allow sending log messages to a Sentry server",
+    "rollbar/rollbar": "Allow sending log messages to Rollbar"
+  },
+  "autoload": {
+    "psr-4": {
+      "CloudDoctor\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "CloudDoctor\\tests\\": "tests/"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+.idea
+vendor
+data/
+version.json
+cloud-definition.override.yml
+*.pem
+daemon.json
+swarm-tokens.yml
