@@ -1,2 +1,6 @@
 .idea
 vendor
+data/
+version.json
+cloud-definition.override.yml
+config/

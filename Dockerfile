@@ -1,4 +1,4 @@
-FROM alpine:3.6
+FROM alpine:3.8
 ADD start_runit /sbin/
 RUN mkdir /etc/container_environment && \
     chmod a+x /sbin/start_runit && \
@@ -12,6 +12,9 @@ RUN mkdir /etc/container_environment && \
     php7-json \
     php7-zip \
     php7-curl \
+    php7-phar \
+    php7-dom \
+    php7-mbstring \
     bash \
     curl \
     bind-tools \
@@ -32,6 +35,7 @@ RUN mkdir /etc/container_environment && \
     zip \
     && \
     rm -rf /var/cache/apk/* && \
+    curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer && \
     \
     \
     openvpn --version | head -1 | cut -d " " -f1-2 && \
@@ -49,5 +53,11 @@ WORKDIR /app
 # Copy cron & worker tasks into location and chmod accordingly.
 ADD ./ /app/
 
+RUN composer install
+
 ADD babysitter.sh /etc/service/babysitter/run
-RUN chmod +x /etc/service/babysitter/run
+RUN chmod +x /etc/service/babysitter/run && \
+    chmod +x /app/babysitter.php
+CMD ["/app/babysitter.php"]
+
+VOLUME "/app/config"

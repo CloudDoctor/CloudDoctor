@@ -1,0 +1,90 @@
+credentials:
+  linode:
+    # This is overridden in cloud-definition.override.yml
+    api-key: BogusKey
+
+logging:
+  sentry:
+    api-key: BogusKey
+    level: warning
+  rollbar:
+    api-key: BogusKey
+    environment: production
+    level: warning
+  telegram:
+    api-key: BogusKey
+    chat-id: My Channel
+    level: emergency
+
+instances:
+  managers:
+    scale: 1
+    provider:
+      linode:
+        type: Linode 2GB
+        name: test-master-%1$03d
+        image: Debian 9
+        region: eu-central
+        tags:
+        - deletion-bait
+        group: test
+    role: manager
+    labels:
+    - type=manager
+    dns:
+      a:
+      - "%1$03d.managers.test.gone.io"
+    ssh:
+      port:
+      - 2200
+      - 22
+    tls:
+      common-name: testcluster.gone.io
+      subject: /C=UK/ST=Greater Manchester/L=Manchester/O=VPN On Demand/OU=Privacy Department/CN=managers.vpnondemand.co.uk
+    scripts:
+      install:
+      - command: sed -i 's/\#Port 22/Port 2200/' /etc/ssh/sshd_config && /etc/init.d/ssh restart
+      - command: export DEBIAN_FRONTEND=noninteractive && apt-get update -qq && apt-get install -qq -o=Dpkg::Use-Pty=0 -y fail2ban
+        skip-if:
+          command: ls -l /etc/init.d/docker
+          expect-not-contains: No such file or directory
+      - command: export DEBIAN_FRONTEND=noninteractive && curl -fsSL get.docker.com -o get-docker.sh && sh get-docker.sh && rm get-docker.sh
+        skip-if:
+          command: docker ps
+          expect-contains: CONTAINER ID
+      - command: docker ps
+        expect-contains: CONTAINER ID
+  slaves:
+    scale: 2
+    provider:
+      linode:
+        type: Nanode 1GB
+        name: test-slave-%1$03d
+        image: Debian 9
+        region: eu-central
+        tags:
+        - deletion-bait
+        group: test
+    role: worker
+    labels:
+    - type=slave
+    dns:
+      a:
+      - "%1$03d.slaves.test.gone.io"
+    ssh:
+      port:
+      - 2200
+      - 22
+    scripts:
+      install:
+      - command: sed -i 's/\#Port 22/Port 2200/' /etc/ssh/sshd_config && /etc/init.d/ssh restart
+      - command: apt-get update -qq && apt-get install -qq -o=Dpkg::Use-Pty=0 -y fail2ban
+        skip-if:
+          command: ls -l /etc/init.d/docker
+          expect-not-contains: No such file or directory
+      - command: export DEBIAN_FRONTEND=noninteractive && curl -fsSL get.docker.com -o get-docker.sh && sh get-docker.sh && rm get-docker.sh
+        skip-if:
+          command: docker ps
+          expect-contains: CONTAINER ID
+      - command: docker ps
+        expect-contains: CONTAINER ID

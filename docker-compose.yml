@@ -1,0 +1,10 @@
+version: "2.3"
+
+services:
+  cloud-doctor:
+    build: .
+    image: cloud-doctor
+    volumes:
+      - ./cloud-definition.yml:/app/cloud-definition.yml
+      - ./cloud-definition.override.yml:/app/cloud-definition.override.yml
+      - $HOME/.ssh:/root/.ssh
