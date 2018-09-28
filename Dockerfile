@@ -44,7 +44,8 @@ RUN mkdir /etc/container_environment && \
     wget --version | head -1 && \
     curl --version | head -1 | cut -d " " -f1-2 && \
     python --version && \
-    bash --version | head -1 | cut -d "(" -f1
+    bash --version | head -1 | cut -d "(" -f1 && \
+    composer --version | head -1 | cut -d " " -f1-3
 
 CMD ["/sbin/start_runit"]
 
