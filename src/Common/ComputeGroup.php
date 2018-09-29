@@ -13,6 +13,8 @@ class ComputeGroup extends Entity
 
     /** @var string */
     protected $role = 'worker';
+    /** @var int */
+    protected $scale = 0;
     /** @var array */
     protected $scripts = [];
     /** @var array */
@@ -498,6 +500,36 @@ class ComputeGroup extends Entity
     public function setLabels(array $labels): ComputeGroup
     {
         $this->labels = $labels;
+        return $this;
+    }
+
+    /**
+     * Decide if scaling is required. Scale up would be represented by a positive int, Scale down would be represented by a negative int
+     * @return int
+     */
+    public function isScalingRequired() : int {
+        return $this->get
+    }
+
+    public function countComputes() : int {
+
+    }
+
+    /**
+     * @return int
+     */
+    public function getScale(): int
+    {
+        return $this->scale;
+    }
+
+    /**
+     * @param int $scale
+     * @return ComputeGroup
+     */
+    public function setScale(int $scale): ComputeGroup
+    {
+        $this->scale = $scale;
         return $this;
     }
 
