@@ -4,6 +4,7 @@ namespace CloudDoctor\Common;
 
 use CloudDoctor\CloudDoctor;
 use CloudDoctor\Exceptions\CloudDoctorException;
+use CloudDoctor\Interfaces\ComputeInterface;
 use phpseclib\Net\SFTP;
 use phpseclib\Net\SSH2;
 
@@ -58,7 +59,7 @@ class Compute extends Entity
      * @param string $tag
      * @return Compute
      */
-    public function addTag(string $tag): Compute
+    public function addTag(string $tag): ComputeInterface
     {
         $this->tags[] = $tag;
         $this->tags = array_unique($this->tags);

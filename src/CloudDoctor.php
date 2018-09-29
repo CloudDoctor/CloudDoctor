@@ -381,6 +381,7 @@ class CloudDoctor
         self::Monolog()->addDebug("SCALE───┐");
         foreach (self::$computeGroups as $computeGroup) {
             CloudDoctor::Monolog()->addDebug("        ├┬ Checking Compute Group: {$computeGroup->getGroupName()}");
+            $computeGroup->updateTags();
             CloudDoctor::Monolog()->addDebug("        │├─ Scale Desired: {$computeGroup->getScale()}");
             CloudDoctor::Monolog()->addDebug("        │├─ Scale Current: {$computeGroup->countComputes()}");
             if ($computeGroup->isScalingRequired() == 0) {

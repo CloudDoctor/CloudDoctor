@@ -20,6 +20,12 @@ class Request
         return json_decode($this->guzzle->request('POST', $endpoint, ['json' => $json])->getBody()->getContents(), false);
     }
 
+    public function putJson(string $endpoint, array $json): \StdClass
+    {
+        $endpoint = ltrim($endpoint, "/");
+        return json_decode($this->guzzle->request('PUT', $endpoint, ['json' => $json])->getBody()->getContents(), false);
+    }
+
     public function deleteJson(string $endpoint): \StdClass
     {
         $endpoint = ltrim($endpoint, "/");

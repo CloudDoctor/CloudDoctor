@@ -29,6 +29,8 @@ class ComputeGroup extends Entity
     private $groupName;
     /** @var array */
     private $dns = [];
+    /** @var array */
+    private $tags = [];
     /** @var Compute[] */
     private $compute;
     /** @var CloudDoctor */
@@ -65,7 +67,28 @@ class ComputeGroup extends Entity
             if (isset($config['dns'])) {
                 $this->setDns($config['dns']);
             }
+            if (isset($config['tags'])) {
+                $this->setTags($config['tags']);
+            }
         }
+    }
+
+    /**
+     * @return array
+     */
+    public function getTags(): array
+    {
+        return $this->tags;
+    }
+
+    /**
+     * @param array $tags
+     * @return ComputeGroup
+     */
+    public function setTags(array $tags): ComputeGroup
+    {
+        $this->tags = $tags;
+        return $this;
     }
 
     /**
@@ -156,6 +179,9 @@ class ComputeGroup extends Entity
     public function addCompute(Compute $compute)
     {
         $compute->addTag($this->getComputeGroupTag());
+        foreach($this->getTags() as $tag) {
+            $compute->addTag($tag);
+        }
         $this->compute[] = $compute;
         return $this;
     }
@@ -597,5 +623,12 @@ class ComputeGroup extends Entity
     {
         $this->cloudDoctor = $cloudDoctor;
         return $this;
+    }
+    
+    public function updateTags() : void
+    {
+        foreach($this->getCompute() as $compute){
+            $compute->updateTags();
+        }
     }
 }

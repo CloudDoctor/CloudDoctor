@@ -40,4 +40,10 @@ interface ComputeInterface
     public function getPublicIp(): string;
 
     public function getComputeGroup(): ComputeGroup;
+
+    public function getTags() : array;
+
+    public function addTag(string $tag) : ComputeInterface;
+
+    public function updateTags() : void;
 }
