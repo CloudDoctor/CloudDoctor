@@ -95,7 +95,7 @@ class CloudDoctor
         return $merged;
     }
 
-    public function assert(array $cloudDefinition)
+    public function assert(array $cloudDefinition) : CloudDoctor
     {
         if (!isset($cloudDefinition['authorized-keys']) && getenv('HOME') && file_exists(getenv('HOME') . "/.ssh/id_rsa.pub")) {
             echo "No .authorized-keys element in config, assuming ~/.ssh/id_rsa.pub\n";
@@ -108,7 +108,7 @@ class CloudDoctor
         $this->createRequesters($cloudDefinition['credentials']);
         $this->createDnsControllers($cloudDefinition['credentials']);
         $this->createInstances($cloudDefinition['instances'], $cloudDefinition['authorized-keys']);
-        $this->deploy();
+        return $this;
     }
 
     private function setupMonolog(array $loggingConfig)
@@ -201,7 +201,7 @@ class CloudDoctor
         }
     }
 
-    private function deploy()
+    public function deploy()
     {
 
         self::Monolog()->addDebug("DEPLOY──┐");

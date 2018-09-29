@@ -10,3 +10,4 @@ $dr->assertFromFile(
     "cloud-definition.yml",
     "cloud-definition.override.yml"
 );
+$dr->deploy();
