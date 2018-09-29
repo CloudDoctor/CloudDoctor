@@ -9,6 +9,7 @@ use CloudDoctor\Common\Request;
 use CloudDoctor\Common\Swarmifier;
 use CloudDoctor\Exceptions\CloudDefinitionException;
 use CloudDoctor\Linode\DNSController;
+use GuzzleHttp\Exception\ClientException;
 use Hackzilla\PasswordGenerator\Generator\ComputerPasswordGenerator;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\PsrHandler;
@@ -282,8 +283,12 @@ class CloudDoctor
             CloudDoctor::Monolog()->addDebug("        ├┬ Deleting Compute Group: {$computeGroup->getGroupName()}");
             foreach($computeGroup->getCompute() as $compute){
                 CloudDoctor::Monolog()->addDebug("        │├┬ Deleting Compute: {$compute->getName()}");
-                $compute->destroy();
-                CloudDoctor::Monolog()->addDebug("        ││└─ Deleted!");
+                if($compute->destroy()) {
+                    CloudDoctor::Monolog()->addDebug("        ││└─ Deleted!");
+                }else{
+                    CloudDoctor::Monolog()->addDebug("        ││└─ Could not be deleted, does it exist?");
+                }
+
             }
             CloudDoctor::Monolog()->addDebug("        │");
         }

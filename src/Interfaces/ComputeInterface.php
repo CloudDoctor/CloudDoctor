@@ -11,7 +11,7 @@ interface ComputeInterface
 
     public function exists(): bool;
 
-    public function destroy();
+    public function destroy(): bool;
 
     public function sshOkay(): bool;
 
