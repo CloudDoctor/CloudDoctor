@@ -62,7 +62,11 @@ class CloudDoctor
         return $passwordGenerator->generatePassword();
     }
 
-    public function assertFromFile(string $fileName, string $overrideFileName = null, string $automaticControlOverrideFile = null)
+    public function assertFromFile(
+        string $fileName,
+        string $overrideFileName = null,
+        string $automaticControlOverrideFile = null
+    )
     {
         if (!file_exists($fileName)) {
             throw new CloudDefinitionException("Cannot find definition file \"{$fileName}\"!");
@@ -190,12 +194,18 @@ class CloudDoctor
     private function createInstances($instances, $authorizedKeys)
     {
         foreach ($instances as $groupName => $config) {
-            $computeGroup = ComputeGroup::Factory($groupName, $config);
+            // Calculate provider name into a class-suitablke name
             $providers = array_keys($config['provider']);
+            $providerName = $providers[rand(0, count($providers) - 1)];
+            $provider = $config['provider'][$providerName];
+            $providerNameUC = ucfirst($providerName);
+
+            // instantiate a Compute Group.
+            $computeGroupClass = class_exists("\\CloudDoctor\\{$providerNameUC}\\ComputeGroup") ? "\\CloudDoctor\\{$providerNameUC}\\ComputeGroup" : ComputeGroup::class;
+            /** @var ComputeGroup $computeGroup */
+            $computeGroup = $computeGroupClass::Factory($this,$groupName, $config, self::$requesters[$providerName]);
+            $computeGroup->setScale($config['scale']);
             for ($i = 1; $i <= $config['scale']; $i++) {
-                $providerName = $providers[rand(0, count($providers) - 1)];
-                $provider = $config['provider'][$providerName];
-                $providerNameUC = ucfirst($providerName);
 
                 $computeClass = class_exists("\\CloudDoctor\\{$providerNameUC}\\Compute") ? "\\CloudDoctor\\{$providerNameUC}\\Compute" : Compute::class;
                 /** @var Compute $compute */
@@ -241,13 +251,32 @@ class CloudDoctor
             $computeGroup->applyDockerEngineConfig();
         }
 
+        $this->deploy_swarmify();
+        $this->deploy_dnsEnforce();
+    }
+
+    public function deploy_swarmify()
+    {
+        $roleGroups = [];
+
+        foreach (self::$computeGroups as $computeGroup) {
+            if ($computeGroup->getCompute()) {
+                foreach ($computeGroup->getCompute() as $compute) {
+                    $roleGroups[$computeGroup->getRole()][] = $compute;
+                }
+            }
+        }
+
         $swarmifier = new Swarmifier(
             isset($roleGroups['manager']) ? $roleGroups['manager'] : null,
             isset($roleGroups['worker']) ? $roleGroups['worker'] : null
         );
 
         $swarmifier->swarmify();
+    }
 
+    public function deploy_dnsEnforce()
+    {
         $dns = new DnsEnforcer(self::$dnsControllers);
         foreach (self::$computeGroups as $computeGroup) {
             if ($computeGroup->getCompute()) {
@@ -257,6 +286,34 @@ class CloudDoctor
             }
         }
         $dns->enforce();
+    }
+
+    public function deploy_ComputeGroup(ComputeGroup $computeGroup)
+    {
+        $computeGroup->deploy();
+        $computeGroup->waitForRunning();
+        $computeGroup->setHostNames();
+        $computeGroup->runScript('install');
+        $roleGroups = [];
+        CloudDoctor::Monolog()->addDebug("        ├┬ Dockerisation:");
+        self::Monolog()->addDebug("        │├┬ {$computeGroup->getGroupName()} has role {$computeGroup->getRole()}...");
+        if ($computeGroup->getCompute()) {
+            foreach ($computeGroup->getCompute() as $compute) {
+                $roleGroups[$computeGroup->getRole()][] = $compute;
+            }
+        }
+        if ($computeGroup->isTls()) {
+            if (!$this->certificatesValid()) {
+                $computeGroup->generateTls();
+                CloudDoctor::Monolog()->addDebug("        ││└ Certificates generated!");
+            }else{
+                CloudDoctor::Monolog()->addDebug("        ││└ Certificates valid!");
+            }
+        }
+        $computeGroup->applyDockerEngineConfig();
+        $this->deploy_swarmify();
+        $this->deploy_dnsEnforce();
+        return $this;
     }
 
     public function show()
@@ -288,6 +345,27 @@ class CloudDoctor
                     CloudDoctor::Monolog()->addDebug("        ││└─ Could not be deleted, does it exist?");
                 }
 
+            }
+            CloudDoctor::Monolog()->addDebug("        │");
+        }
+    }
+
+    public function scale()
+    {
+        self::Monolog()->addDebug("SCALE───┐");
+        foreach (self::$computeGroups as $computeGroup) {
+            CloudDoctor::Monolog()->addDebug("        ├┬ Checking Compute Group: {$computeGroup->getGroupName()}");
+            CloudDoctor::Monolog()->addDebug("        │├─ Scale Desired: {$computeGroup->getScale()}");
+            CloudDoctor::Monolog()->addDebug("        │├─ Scale Current: {$computeGroup->countComputes()}");
+            if($computeGroup->isScalingRequired() == 0){
+                CloudDoctor::Monolog()->addDebug("        │└─ Nothing to do!");
+            }else{
+                CloudDoctor::Monolog()->addDebug("        │└─ Need to scale by {$computeGroup->isScalingRequired()}!");
+                if($computeGroup->isScalingRequired() > 0) {
+                    $computeGroup->scaleUp();
+                }else{
+                    $computeGroup->scaleDown();
+                }
             }
             CloudDoctor::Monolog()->addDebug("        │");
         }

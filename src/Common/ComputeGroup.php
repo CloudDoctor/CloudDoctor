@@ -31,9 +31,15 @@ class ComputeGroup extends Entity
     private $dns = [];
     /** @var Compute[] */
     private $compute;
+    /** @var CloudDoctor */
+    private $cloudDoctor;
+    /** @var Request */
+    private $request;
 
-    public function __construct($groupName = null, $config = null)
+    public function __construct(CloudDoctor $cloudDoctor, $groupName = null, $config = null, Request $requester)
     {
+        $this->cloudDoctor = $cloudDoctor;
+        $this->request = $requester;
         if ($groupName) {
             $this->setGroupName($groupName);
         }
@@ -63,6 +69,24 @@ class ComputeGroup extends Entity
     }
 
     /**
+     * @return Request
+     */
+    public function getRequest(): Request
+    {
+        return $this->request;
+    }
+
+    /**
+     * @param Request $request
+     * @return ComputeGroup
+     */
+    public function setRequest(Request $request): ComputeGroup
+    {
+        $this->request = $request;
+        return $this;
+    }
+
+    /**
      * @param array $tls
      * @return ComputeGroup
      */
@@ -72,9 +96,11 @@ class ComputeGroup extends Entity
         return $this;
     }
 
-    public static function Factory($groupName = null, $config = null): ComputeGroup
+    public static function Factory(CloudDoctor $cloudDoctor, $groupName = null, $config = null, Request $request): ComputeGroup
     {
-        return new ComputeGroup($groupName, $config);
+
+        $called = get_called_class();
+        return new $called($cloudDoctor, $groupName, $config, $request);
     }
 
     /**
@@ -118,17 +144,23 @@ class ComputeGroup extends Entity
         return $this;
     }
 
+    public function getComputeGroupTag(): string
+    {
+        return "cd.cg=" . crc32($this->getGroupName());
+    }
+
     /**
      * @param Compute $compute
      * @return ComputeGroup
      */
     public function addCompute(Compute $compute)
     {
+        $compute->addTag($this->getComputeGroupTag());
         $this->compute[] = $compute;
         return $this;
     }
 
-    public function deploy()
+    public function deploy() : void
     {
         CloudDoctor::Monolog()->addDebug("        ├┬ Compute Group '{$this->getGroupName()}':");
         if ($this->getCompute()) {
@@ -507,12 +539,19 @@ class ComputeGroup extends Entity
      * Decide if scaling is required. Scale up would be represented by a positive int, Scale down would be represented by a negative int
      * @return int
      */
-    public function isScalingRequired() : int {
-        return $this->get
+    public function isScalingRequired() : int
+    {
+        return $this->getScale() - $this->countComputes();
     }
 
-    public function countComputes() : int {
-
+    /**
+     * Return the number of running, active instances on the upstream provider.
+     * @return int
+     */
+    public function countComputes() : int
+    {
+        CloudDoctor::Monolog()->warning("Cannot count computes using " . __CLASS__ . ".");
+        return $this->getScale();
     }
 
     /**
@@ -532,5 +571,35 @@ class ComputeGroup extends Entity
         $this->scale = $scale;
         return $this;
     }
+
+    public function scaleUp(){
+        $this->getCloudDoctor()->deploy_ComputeGroup($this);
+        
+    }
+
+    public function scaleDown(){
+        $numberToCull = $this->isScalingRequired() * -1;
+        \Kint::dump($numberToCull);
+    }
+
+    /**
+     * @return CloudDoctor
+     */
+    public function getCloudDoctor(): CloudDoctor
+    {
+        return $this->cloudDoctor;
+    }
+
+    /**
+     * @param CloudDoctor $cloudDoctor
+     * @return ComputeGroup
+     */
+    public function setCloudDoctor(CloudDoctor $cloudDoctor): ComputeGroup
+    {
+        $this->cloudDoctor = $cloudDoctor;
+        return $this;
+    }
+    
+    
 
 }

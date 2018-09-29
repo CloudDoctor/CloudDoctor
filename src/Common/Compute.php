@@ -61,6 +61,7 @@ class Compute extends Entity
     public function addTag(string $tag): Compute
     {
         $this->tags[] = $tag;
+        $this->tags = array_unique($this->tags);
         return $this;
     }
 
