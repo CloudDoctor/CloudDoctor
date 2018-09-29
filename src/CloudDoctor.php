@@ -30,6 +30,9 @@ class CloudDoctor
     /** @var Logger */
     static private $monolog;
 
+    /** @var string */
+    private $name;
+
     public function __construct()
     {
         self::$monolog = new Logger('CloudDoctor');
@@ -97,14 +100,21 @@ class CloudDoctor
 
     public function assert(array $cloudDefinition) : CloudDoctor
     {
-        if (!isset($cloudDefinition['authorized-keys']) && getenv('HOME') && file_exists(getenv('HOME') . "/.ssh/id_rsa.pub")) {
-            echo "No .authorized-keys element in config, assuming ~/.ssh/id_rsa.pub\n";
-            $cloudDefinition['authorized-keys'][] = trim(file_get_contents(getenv('HOME') . "/.ssh/id_rsa.pub"));
 
+        if (!isset($cloudDefinition['authorized-keys']) && getenv('HOME') && file_exists(getenv('HOME') . "/.ssh/id_rsa.pub")) {
+            self::Monolog()->warning("No .authorized-keys element in config, assuming ~/.ssh/id_rsa.pub");
+            $cloudDefinition['authorized-keys'][] = trim(file_get_contents(getenv('HOME') . "/.ssh/id_rsa.pub"));
             self::$privateKeys[] = trim(file_get_contents(getenv('HOME') . "/.ssh/id_rsa"));
         }
-        $this->setupMonolog($cloudDefinition['logging']);
+        if(isset($cloudDefinition['logging'])) {
+            $this->setupMonolog($cloudDefinition['logging']);
+        }else{
+            self::Monolog()->warning("No logging services set up!");
+        }
         $this->validateDefinition($cloudDefinition);
+        $this->setName($cloudDefinition['name']);
+        self::$monolog = self::$monolog->withName("Cloud Doctor: {$this->getName()}");
+        self::Monolog()->debug("Cloud Doctor: {$this->getName()}");
         $this->createRequesters($cloudDefinition['credentials']);
         $this->createDnsControllers($cloudDefinition['credentials']);
         $this->createInstances($cloudDefinition['instances'], $cloudDefinition['authorized-keys']);
@@ -148,9 +158,9 @@ class CloudDoctor
 
     private function validateDefinition(array $cloudDefinition)
     {
-        foreach (['credentials', 'authorized-keys', 'instances'] as $rootElement) {
+        foreach (['name', 'credentials', 'authorized-keys', 'instances'] as $rootElement) {
             if (!isset($cloudDefinition[$rootElement])) {
-                throw new CloudDefinitionException("Configuration requires .{$rootElement}!");
+                throw new CloudDefinitionException("Configuration requires .{$rootElement} field!");
             }
         }
     }
@@ -268,4 +278,24 @@ class CloudDoctor
     {
         return self::$monolog;
     }
+
+    /**
+     * @return string
+     */
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    /**
+     * @param string $name
+     * @return CloudDoctor
+     */
+    public function setName(string $name): CloudDoctor
+    {
+        $this->name = $name;
+        return $this;
+    }
+
+
 }
