@@ -578,8 +578,7 @@ class ComputeGroup extends Entity
     }
 
     public function scaleDown(){
-        $numberToCull = $this->isScalingRequired() * -1;
-        \Kint::dump($numberToCull);
+        CloudDoctor::Monolog()->warn("cannot scale down using " . __CLASS__ . ".");
     }
 
     /**

@@ -360,11 +360,13 @@ class CloudDoctor
             if($computeGroup->isScalingRequired() == 0){
                 CloudDoctor::Monolog()->addDebug("        │└─ Nothing to do!");
             }else{
-                CloudDoctor::Monolog()->addDebug("        │└─ Need to scale by {$computeGroup->isScalingRequired()}!");
                 if($computeGroup->isScalingRequired() > 0) {
+                    CloudDoctor::Monolog()->addDebug("        │└─ Need to scale by {$computeGroup->isScalingRequired()}!");
                     $computeGroup->scaleUp();
                 }else{
+                    CloudDoctor::Monolog()->addDebug("        │└┬ Need to scale by {$computeGroup->isScalingRequired()}!");
                     $computeGroup->scaleDown();
+                    CloudDoctor::Monolog()->addDebug("        │ └─ Deleted!");
                 }
             }
             CloudDoctor::Monolog()->addDebug("        │");

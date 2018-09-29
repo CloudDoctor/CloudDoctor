@@ -37,6 +37,7 @@ class Swarmifier
         CloudDoctor::Monolog()->addDebug("        ├┬ Building Swarm...");
         $this->swarmifyManagers();
         $this->swarmifyWorkers();
+        $this->cleanupSwarm();
         CloudDoctor::Monolog()->addDebug("        │");
     }
 
@@ -128,6 +129,15 @@ class Swarmifier
             foreach ($this->getWorkers() as $node) {
                 $this->prep($node, 'worker');
             }
+        }
+    }
+
+    protected function cleanupSwarm()
+    {
+        if ($this->getManagers()) {
+            $managers = $this->getManagers();
+            $manager = $managers[array_rand($managers,1)];
+            $manager->sshRun('docker node rm $(docker node ls | tr -s \' \' | cut -d \' \' -f1,3 | grep \'Down\' | cut -d \' \' -f1)');
         }
     }
 
