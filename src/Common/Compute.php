@@ -205,8 +205,9 @@ class Compute extends Entity
     public function setGroupIndex(int $groupIndex): Compute
     {
         $this->groupIndex = $groupIndex;
-        if (isset($this->nameFormat))
+        if (isset($this->nameFormat)) {
             $this->recalculateName();
+        }
         return $this;
     }
 
@@ -231,8 +232,9 @@ class Compute extends Entity
     public function setNameFormat(string $nameFormat): Compute
     {
         $this->nameFormat = $nameFormat;
-        if (isset($this->groupIndex))
+        if (isset($this->groupIndex)) {
             $this->recalculateName();
+        }
         return $this;
     }
 
@@ -400,8 +402,7 @@ class Compute extends Entity
 
         $long_ip = ip2long($ip);
         if ($long_ip != -1) {
-
-            foreach ($pri_addrs AS $pri_addr) {
+            foreach ($pri_addrs as $pri_addr) {
                 list ($start, $end) = explode('|', $pri_addr);
 
                 // IF IS PRIVATE

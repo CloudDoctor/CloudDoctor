@@ -183,7 +183,7 @@ class ComputeGroup extends Entity
                             CloudDoctor::Monolog()->addDebug("        ││└ Already Running!");
                             if ($i != count($this->getCompute()) - 1) {
                                 CloudDoctor::Monolog()->addDebug("        ││");
-                            }else{
+                            } else {
                                 CloudDoctor::Monolog()->addDebug("        │");
                             }
                         }
@@ -277,7 +277,6 @@ class ComputeGroup extends Entity
                             }
                         }
                         if (!$skip) {
-
                             $response = $compute->sshRun($script['command']);
                             if (isset($script['expect-contains'])) {
                                 if (stripos($response, $script['expect-contains']) === false) {
@@ -293,13 +292,13 @@ class ComputeGroup extends Entity
                                 CloudDoctor::Monolog()->addDebug("        │├┬ {$compute->getName()} Running '{$script['command']}'");
                                 $lines = explode("\n", $response);
                                 foreach ($lines as $i => $line) {
-                                    if($i == count($lines) - 1) {
+                                    if ($i == count($lines) - 1) {
                                         CloudDoctor::Monolog()->addDebug("        ││└─ {$line}");
                                     } else {
                                         CloudDoctor::Monolog()->addDebug("        ││├─ {$line}");
                                     }
                                 }
-                            }else{
+                            } else {
                                 CloudDoctor::Monolog()->addDebug("        │├─ {$compute->getName()} Running '{$script['command']}'");
                             }
                         } else {
@@ -427,7 +426,7 @@ class ComputeGroup extends Entity
                     $compute->sshUploadFile("config/hostname.sh", "hostname.sh");
                     $compute->sshRun("/bin/bash hostname.sh; rm hostname.sh");
                     CloudDoctor::Monolog()->addDebug("        │└ Renamed '{$currentHostname}' to '{$newHostname}'...");
-                }else{
+                } else {
                     CloudDoctor::Monolog()->addDebug("        │└ Hostname already correct.");
                 }
             }
@@ -467,7 +466,7 @@ class ComputeGroup extends Entity
 
                 $comparisonFile = tempnam("/tmp", "comparison-");
                 $compute->sshDownloadFile("/etc/docker/daemon.json", $comparisonFile);
-                if(file_get_contents($daemonFilePath) != file_get_contents($comparisonFile)){
+                if (file_get_contents($daemonFilePath) != file_get_contents($comparisonFile)) {
                     $compute->sshUploadFile($daemonFilePath, "/etc/docker/daemon.json");
                     if ($compute->getComputeGroup()->isTls()) {
                         $compute->sshUploadFile("config/server-cert.pem", "/etc/docker/server-cert.pem");
@@ -572,12 +571,13 @@ class ComputeGroup extends Entity
         return $this;
     }
 
-    public function scaleUp(){
+    public function scaleUp()
+    {
         $this->getCloudDoctor()->deploy_ComputeGroup($this);
-        
     }
 
-    public function scaleDown(){
+    public function scaleDown()
+    {
         CloudDoctor::Monolog()->warn("cannot scale down using " . __CLASS__ . ".");
     }
 
@@ -598,7 +598,4 @@ class ComputeGroup extends Entity
         $this->cloudDoctor = $cloudDoctor;
         return $this;
     }
-    
-    
-
 }

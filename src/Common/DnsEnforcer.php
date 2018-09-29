@@ -42,25 +42,24 @@ class DnsEnforcer
         foreach ($this->dnsControllers as $dnsController) {
             if (isset($dnsList['a']) && count($dnsList['a']) > 0) {
                 foreach ($dnsList['a'] as $domain => $ips) {
-                    if(!$dnsController->verifyRecordCorrect($domain, $ips)) {
+                    if (!$dnsController->verifyRecordCorrect($domain, $ips)) {
                         $dnsController->removeMatchingDomains('a', $domain);
                         foreach ($ips as $ip) {
                             $dnsController->createRecord('a', $domain, $ip);
                         }
-                    }else{
+                    } else {
                         CloudDoctor::Monolog()->addDebug("        │├ Already Complete: {$domain}");
                     }
                 }
             }
             if (isset($dnsList['cnames']) && count($dnsList['cnames']) > 0) {
                 foreach ($dnsList['cnames'] as $domain => $values) {
-
-                    if(!$dnsController->verifyRecordCorrect($domain, $values)) {
+                    if (!$dnsController->verifyRecordCorrect($domain, $values)) {
                         $dnsController->removeMatchingDomains('cname', $domain);
                         foreach ($values as $value) {
                             $dnsController->createRecord('cname', $domain, $value);
                         }
-                    }else{
+                    } else {
                         CloudDoctor::Monolog()->addDebug("        │├ Already Complete: {$domain}");
                     }
                 }

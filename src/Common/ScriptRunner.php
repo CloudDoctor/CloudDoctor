@@ -85,6 +85,4 @@ class ScriptRunner
         $this->workers = $workers;
         return $this;
     }
-
-
 }

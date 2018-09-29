@@ -45,7 +45,7 @@ class CloudDoctor
         self::$monolog->pushHandler($streamHandler); // <<< uses a stream
     }
 
-    static public function getRequester($name): ?Request
+    public static function getRequester($name): ?Request
     {
         return self::$requesters[$name];
     }
@@ -66,8 +66,7 @@ class CloudDoctor
         string $fileName,
         string $overrideFileName = null,
         string $automaticControlOverrideFile = null
-    )
-    {
+    ) {
         if (!file_exists($fileName)) {
             throw new CloudDefinitionException("Cannot find definition file \"{$fileName}\"!");
         }
@@ -93,11 +92,13 @@ class CloudDoctor
         foreach ($array2 as $key => & $value) {
             if (is_array($value) && isset($merged[$key]) && is_array($merged[$key])) {
                 $merged[$key] = $this->arrayOverwrite($merged[$key], $value);
-            } else if (is_numeric($key)) {
-                if (!in_array($value, $merged))
+            } elseif (is_numeric($key)) {
+                if (!in_array($value, $merged)) {
                     $merged[] = $value;
-            } else
+                }
+            } else {
                 $merged[$key] = $value;
+            }
         }
 
         return $merged;
@@ -110,9 +111,9 @@ class CloudDoctor
             $cloudDefinition['authorized-keys'][] = trim(file_get_contents(getenv('HOME') . "/.ssh/id_rsa.pub"));
             self::$privateKeys[] = trim(file_get_contents(getenv('HOME') . "/.ssh/id_rsa"));
         }
-        if(isset($cloudDefinition['logging'])) {
+        if (isset($cloudDefinition['logging'])) {
             $this->setupMonolog($cloudDefinition['logging']);
-        }else{
+        } else {
             self::Monolog()->warning("No logging services set up!");
         }
         $this->validateDefinition($cloudDefinition);
@@ -127,7 +128,7 @@ class CloudDoctor
 
     private function setupMonolog(array $loggingConfig)
     {
-        if(isset($loggingConfig['sentry']) && isset($loggingConfig['sentry']['api-key'])) {
+        if (isset($loggingConfig['sentry']) && isset($loggingConfig['sentry']['api-key'])) {
             $client = new \Raven_Client($loggingConfig['sentry']['api-key']);
             $handler = new \Monolog\Handler\RavenHandler(
                 $client,
@@ -137,7 +138,7 @@ class CloudDoctor
             self::$monolog->pushHandler($handler);
         }
 
-        if(isset($loggingConfig['rollbar']) && isset($loggingConfig['rollbar']['api-key'])) {
+        if (isset($loggingConfig['rollbar']) && isset($loggingConfig['rollbar']['api-key'])) {
             $config = array(
                 'access_token' => $loggingConfig['rollbar']['api-key'],
                 'environment' => isset($loggingConfig['rollbar']['environment']) ? $loggingConfig['rollbar']['environment'] : 'local',
@@ -147,7 +148,7 @@ class CloudDoctor
             self::$monolog->pushHandler(new PsrHandler(Rollbar::logger()));
         }
 
-        if(isset($loggingConfig['telegram']) && isset($loggingConfig['telegram']['api-key']) && isset($loggingConfig['telegram']['chat-id'])){
+        if (isset($loggingConfig['telegram']) && isset($loggingConfig['telegram']['api-key']) && isset($loggingConfig['telegram']['chat-id'])) {
             self::$monolog->pushHandler(
                 new TelegramHandler(
                     $loggingConfig['telegram']['api-key'],
@@ -203,10 +204,9 @@ class CloudDoctor
             // instantiate a Compute Group.
             $computeGroupClass = class_exists("\\CloudDoctor\\{$providerNameUC}\\ComputeGroup") ? "\\CloudDoctor\\{$providerNameUC}\\ComputeGroup" : ComputeGroup::class;
             /** @var ComputeGroup $computeGroup */
-            $computeGroup = $computeGroupClass::Factory($this,$groupName, $config, self::$requesters[$providerName]);
+            $computeGroup = $computeGroupClass::Factory($this, $groupName, $config, self::$requesters[$providerName]);
             $computeGroup->setScale($config['scale']);
             for ($i = 1; $i <= $config['scale']; $i++) {
-
                 $computeClass = class_exists("\\CloudDoctor\\{$providerNameUC}\\Compute") ? "\\CloudDoctor\\{$providerNameUC}\\Compute" : Compute::class;
                 /** @var Compute $compute */
                 $compute = new $computeClass($computeGroup, $provider);
@@ -244,7 +244,7 @@ class CloudDoctor
                 if (!$this->certificatesValid()) {
                     $computeGroup->generateTls();
                     CloudDoctor::Monolog()->addDebug("        ││└ Certificates generated!");
-                }else{
+                } else {
                     CloudDoctor::Monolog()->addDebug("        ││└ Certificates valid!");
                 }
             }
@@ -255,7 +255,7 @@ class CloudDoctor
         $this->deploy_dnsEnforce();
     }
 
-    public function deploy_swarmify()
+    public function deploy_swarmify() : void
     {
         $roleGroups = [];
 
@@ -306,7 +306,7 @@ class CloudDoctor
             if (!$this->certificatesValid()) {
                 $computeGroup->generateTls();
                 CloudDoctor::Monolog()->addDebug("        ││└ Certificates generated!");
-            }else{
+            } else {
                 CloudDoctor::Monolog()->addDebug("        ││└ Certificates valid!");
             }
         }
@@ -321,11 +321,11 @@ class CloudDoctor
         self::Monolog()->addDebug("SCHEMA──┐");
         foreach (self::$computeGroups as $computeGroup) {
             CloudDoctor::Monolog()->addDebug("        ├┬ Compute Group: {$computeGroup->getGroupName()}");
-            foreach($computeGroup->getCompute() as $compute){
+            foreach ($computeGroup->getCompute() as $compute) {
                 CloudDoctor::Monolog()->addDebug("        │├┬ Compute: {$compute->getName()}");
                 CloudDoctor::Monolog()->addDebug("        ││├ Hostname: {$compute->getHostName()}");
                 CloudDoctor::Monolog()->addDebug("        ││├┬ DNS Entries:");
-                foreach($compute->getHostNames() as $hostname){
+                foreach ($compute->getHostNames() as $hostname) {
                     CloudDoctor::Monolog()->addDebug("        │││├ {$hostname}");
                 }
             }
@@ -333,18 +333,18 @@ class CloudDoctor
         }
     }
 
-    public function purge(){
+    public function purge()
+    {
         self::Monolog()->addDebug("PURGE───┐");
         foreach (self::$computeGroups as $computeGroup) {
             CloudDoctor::Monolog()->addDebug("        ├┬ Deleting Compute Group: {$computeGroup->getGroupName()}");
-            foreach($computeGroup->getCompute() as $compute){
+            foreach ($computeGroup->getCompute() as $compute) {
                 CloudDoctor::Monolog()->addDebug("        │├┬ Deleting Compute: {$compute->getName()}");
-                if($compute->destroy()) {
+                if ($compute->destroy()) {
                     CloudDoctor::Monolog()->addDebug("        ││└─ Deleted!");
-                }else{
+                } else {
                     CloudDoctor::Monolog()->addDebug("        ││└─ Could not be deleted, does it exist?");
                 }
-
             }
             CloudDoctor::Monolog()->addDebug("        │");
         }
@@ -357,13 +357,13 @@ class CloudDoctor
             CloudDoctor::Monolog()->addDebug("        ├┬ Checking Compute Group: {$computeGroup->getGroupName()}");
             CloudDoctor::Monolog()->addDebug("        │├─ Scale Desired: {$computeGroup->getScale()}");
             CloudDoctor::Monolog()->addDebug("        │├─ Scale Current: {$computeGroup->countComputes()}");
-            if($computeGroup->isScalingRequired() == 0){
+            if ($computeGroup->isScalingRequired() == 0) {
                 CloudDoctor::Monolog()->addDebug("        │└─ Nothing to do!");
-            }else{
-                if($computeGroup->isScalingRequired() > 0) {
+            } else {
+                if ($computeGroup->isScalingRequired() > 0) {
                     CloudDoctor::Monolog()->addDebug("        │└─ Need to scale by {$computeGroup->isScalingRequired()}!");
                     $computeGroup->scaleUp();
-                }else{
+                } else {
                     CloudDoctor::Monolog()->addDebug("        │└┬ Need to scale by {$computeGroup->isScalingRequired()}!");
                     $computeGroup->scaleDown();
                     CloudDoctor::Monolog()->addDebug("        │ └─ Deleted!");
@@ -387,7 +387,7 @@ class CloudDoctor
     /**
      * @return Logger
      */
-    static public function Monolog(): Logger
+    public static function Monolog(): Logger
     {
         return self::$monolog;
     }
@@ -409,6 +409,4 @@ class CloudDoctor
         $this->name = $name;
         return $this;
     }
-
-
 }

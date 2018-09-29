@@ -22,14 +22,17 @@ class Swarmifier
      */
     public function __construct(array $managers = null, array $workers = null)
     {
-        if ($managers)
+        if ($managers) {
             shuffle($managers);
-        if ($workers)
+        }
+        if ($workers) {
             shuffle($workers);
+        }
         $this->managers = $managers;
         $this->workers = $workers;
-        if (file_exists("config/swarm-tokens.yml"))
+        if (file_exists("config/swarm-tokens.yml")) {
             $this->swarmCredentials = Yaml::parseFile("config/swarm-tokens.yml");
+        }
     }
 
     public function swarmify()
@@ -83,31 +86,31 @@ class Swarmifier
             } else {
                 $clusterId = $compute->sshRun('docker info 2>/dev/null | grep ClusterID | awk \'{$1=$1};1\' | cut -d \' \' -f2');
                 if ($clusterId != $this->swarmCredentials['ClusterId'] || $clusterId == '') {
-                    if($clusterId == '') {
+                    if ($clusterId == '') {
                         CloudDoctor::Monolog()->addDebug("        ││└┬ Docker Cluster ID '{$clusterId}' is empty, reasserting...");
-                    }else{
+                    } else {
                         CloudDoctor::Monolog()->addDebug("        ││└┬ Docker Cluster ID '{$clusterId}' does not match expected Cluster ID '{$this->swarmCredentials['ClusterId']}', reasserting...");
                     }
                     $compute->sshRun("docker swarm leave -f");
                     $compute->sshRun($this->swarmCredentials[$type]);
                     CloudDoctor::Monolog()->addDebug("        ││ └ DONE!");
-                }else{
+                } else {
                     CloudDoctor::Monolog()->addDebug("        ││└ Docker Cluster ID '{$clusterId}' matches, nothing to do...");
                 }
             }
         } else {
             $clusterId = $compute->sshRun('cat .clusterid');
             if ($clusterId != $this->swarmCredentials['ClusterId'] || $clusterId == '') {
-                if($clusterId == '') {
+                if ($clusterId == '') {
                     CloudDoctor::Monolog()->addDebug("        ││└┬ Docker Cluster ID '{$clusterId}' is empty, reasserting...");
-                }else{
+                } else {
                     CloudDoctor::Monolog()->addDebug("        ││└┬ Docker Cluster ID '{$clusterId}' does not match expected Cluster ID '{$this->swarmCredentials['ClusterId']}', reasserting...");
                 }
                 $compute->sshRun("docker swarm leave -f");
                 $compute->sshRun($this->swarmCredentials[$type]);
                 $compute->sshRun("echo \"{$this->swarmCredentials['ClusterId']}\" > .clusterid");
                 CloudDoctor::Monolog()->addDebug("        ││ └ DONE!");
-            }else{
+            } else {
                 CloudDoctor::Monolog()->addDebug("        ││└ Docker Cluster ID '{$clusterId}' matches, nothing to do...");
             }
         }
@@ -136,7 +139,7 @@ class Swarmifier
     {
         if ($this->getManagers()) {
             $managers = $this->getManagers();
-            $manager = $managers[array_rand($managers,1)];
+            $manager = $managers[array_rand($managers, 1)];
             $manager->sshRun('docker node rm $(docker node ls | tr -s \' \' | cut -d \' \' -f1,3 | grep \'Down\' | cut -d \' \' -f1)');
         }
     }
@@ -158,6 +161,4 @@ class Swarmifier
         $this->workers = $workers;
         return $this;
     }
-
-
 }
