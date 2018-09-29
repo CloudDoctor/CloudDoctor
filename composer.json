@@ -16,10 +16,10 @@
     "guzzlehttp/guzzle": "^6.3",
     "hackzilla/password-generator": "^1.4",
     "phpseclib/phpseclib": "^2.0",
-    "monolog/monolog": "^1.23",
-    "php-school/cli-menu": "^2.0.0"
+    "monolog/monolog": "^1.23"
   },
   "suggest": {
+    "cloud-doctor/cli": "Commandline interface for CloudDoctor",
     "cloud-doctor/provider-linode": "Allow using Linode as a Cloud Compute/DNS provider",
     "rahimi/monolog-telegram": "Allow sending log messages to a Telegram Channel",
     "sentry/sentry": "Allow sending log messages to a Sentry server",
