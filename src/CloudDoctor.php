@@ -31,6 +31,9 @@ class CloudDoctor
     /** @var Logger */
     static private $monolog;
 
+    /** @var int[] */
+    private $fileMD5s;
+
     /** @var string */
     private $name;
 
@@ -43,6 +46,24 @@ class CloudDoctor
         $streamHandler = new StreamHandler('php://stdout', Logger::DEBUG);
         $streamHandler->setFormatter($formatter);
         self::$monolog->pushHandler($streamHandler); // <<< uses a stream
+    }
+
+    /**
+     * @return int[]
+     */
+    public function getFileMD5s(): array
+    {
+        return $this->fileMTimes;
+    }
+
+    /**
+     * @param int[] $fileMTimes
+     * @return CloudDoctor
+     */
+    public function setFileMD5s(array $fileMD5s): CloudDoctor
+    {
+        $this->fileMTimes = $fileMTimes;
+        return $this;
     }
 
     public static function getRequester($name): ?Request
@@ -67,19 +88,24 @@ class CloudDoctor
         string $overrideFileName = null,
         string $automaticControlOverrideFile = null
     ) {
+        $this->fileMD5s = [];
+
         if (!file_exists($fileName)) {
             throw new CloudDefinitionException("Cannot find definition file \"{$fileName}\"!");
         }
         $cloudDefinition = \Symfony\Component\Yaml\Yaml::parseFile($fileName);
+        $this->fileMD5s[$fileName] = md5_file($fileName);
 
         if ($overrideFileName && file_exists($overrideFileName)) {
             $cloudOverrideDefinition = \Symfony\Component\Yaml\Yaml::parseFile($overrideFileName);
             $cloudDefinition = $this->arrayOverwrite($cloudDefinition, $cloudOverrideDefinition);
+            $this->fileMD5s[$overrideFileName] = md5_file($overrideFileName);
         }
 
         if ($automaticControlOverrideFile && file_exists($automaticControlOverrideFile)) {
             $automaticControlOverrideDefinition = \Symfony\Component\Yaml\Yaml::parseFile($automaticControlOverrideFile);
             $cloudDefinition = $this->arrayOverwrite($cloudDefinition, $automaticControlOverrideDefinition);
+            $this->fileMD5s[$automaticControlOverrideFile] = md5_file($automaticControlOverrideFile);
         }
 
         $this->assert($cloudDefinition);
@@ -275,7 +301,7 @@ class CloudDoctor
         $swarmifier->swarmify();
     }
 
-    public function deploy_dnsEnforce()
+    public function deploy_dnsEnforce() : void
     {
         $dns = new DnsEnforcer(self::$dnsControllers);
         foreach (self::$computeGroups as $computeGroup) {
@@ -288,7 +314,7 @@ class CloudDoctor
         $dns->enforce();
     }
 
-    public function deploy_ComputeGroup(ComputeGroup $computeGroup)
+    public function deploy_ComputeGroup(ComputeGroup $computeGroup) : CloudDoctor
     {
         $computeGroup->deploy();
         $computeGroup->waitForRunning();
@@ -316,7 +342,7 @@ class CloudDoctor
         return $this;
     }
 
-    public function show()
+    public function show() : void
     {
         self::Monolog()->addDebug("SCHEMA──┐");
         foreach (self::$computeGroups as $computeGroup) {
@@ -333,7 +359,7 @@ class CloudDoctor
         }
     }
 
-    public function purge()
+    public function purge() : void
     {
         self::Monolog()->addDebug("PURGE───┐");
         foreach (self::$computeGroups as $computeGroup) {
@@ -350,7 +376,7 @@ class CloudDoctor
         }
     }
 
-    public function scale()
+    public function scale() : void
     {
         self::Monolog()->addDebug("SCALE───┐");
         foreach (self::$computeGroups as $computeGroup) {
@@ -371,6 +397,33 @@ class CloudDoctor
             }
             CloudDoctor::Monolog()->addDebug("        │");
         }
+    }
+
+    public function watch(Cli $cli) : void
+    {
+        self::Monolog()->addDebug("Watching for changes...");
+        while(true){
+            if($this->configFilesChanged()){
+                $cli->assertFromFiles();
+                $this->scale();
+            }else{
+                sleep(3);
+            }
+        }
+    }
+
+    private function configFilesChanged() : bool
+    {
+        $changed = false;
+        foreach($this->fileMD5s as $filename => $currentMD5){
+            $newMD5 = md5_file($filename);
+            if($currentMD5 != $newMD5){
+                CloudDoctor::Monolog()->debug("File {$filename} has changed!");
+                $this->fileMD5s[$filename] = $newMD5;
+                $changed = true;
+            }
+        }
+        return $changed;
     }
 
     private function certificatesValid()
