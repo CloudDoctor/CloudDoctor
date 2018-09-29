@@ -213,7 +213,6 @@ class CloudDoctor
 
     public function deploy()
     {
-
         self::Monolog()->addDebug("DEPLOY──┐");
         foreach (self::$computeGroups as $computeGroup) {
             $computeGroup->deploy();
@@ -258,6 +257,36 @@ class CloudDoctor
             }
         }
         $dns->enforce();
+    }
+
+    public function show()
+    {
+        self::Monolog()->addDebug("SCHEMA──┐");
+        foreach (self::$computeGroups as $computeGroup) {
+            CloudDoctor::Monolog()->addDebug("        ├┬ Compute Group: {$computeGroup->getGroupName()}");
+            foreach($computeGroup->getCompute() as $compute){
+                CloudDoctor::Monolog()->addDebug("        │├┬ Compute: {$compute->getName()}");
+                CloudDoctor::Monolog()->addDebug("        ││├ Hostname: {$compute->getHostName()}");
+                CloudDoctor::Monolog()->addDebug("        ││├┬ DNS Entries:");
+                foreach($compute->getHostNames() as $hostname){
+                    CloudDoctor::Monolog()->addDebug("        │││├ {$hostname}");
+                }
+            }
+            CloudDoctor::Monolog()->addDebug("        │");
+        }
+    }
+
+    public function purge(){
+        self::Monolog()->addDebug("PURGE───┐");
+        foreach (self::$computeGroups as $computeGroup) {
+            CloudDoctor::Monolog()->addDebug("        ├┬ Deleting Compute Group: {$computeGroup->getGroupName()}");
+            foreach($computeGroup->getCompute() as $compute){
+                CloudDoctor::Monolog()->addDebug("        │├┬ Deleting Compute: {$compute->getName()}");
+                $compute->destroy();
+                CloudDoctor::Monolog()->addDebug("        ││└─ Deleted!");
+            }
+            CloudDoctor::Monolog()->addDebug("        │");
+        }
     }
 
     private function certificatesValid()
