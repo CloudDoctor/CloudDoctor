@@ -45,20 +45,20 @@ class Swarmifier
     private function pickRandomManager() : ComputeInterface
     {
         $allManagers = $this->getManagers();
-        $chosenManager = $allManagers[array_rand($allManagers,1)];
+        $chosenManager = $allManagers[array_rand($allManagers, 1)];
         return $chosenManager;
     }
 
     public function assertDefaultNetworks() : void
     {
         $chosenManager = $this->pickRandomManager();
-        foreach($this->defaultNetworks as $name => $config) {
+        foreach ($this->defaultNetworks as $name => $config) {
             CloudDoctor::Monolog()->addDebug("        ├┬ Network {$name}:");
             $command = "docker network create ";
-            if(isset($config['attachable']) && $config['attachable'] == true){
+            if (isset($config['attachable']) && $config['attachable'] == true) {
                 $command.= "--attachable ";
             }
-            if(isset($config['driver'])){
+            if (isset($config['driver'])) {
                 $command.= "--driver {$config['driver']} ";
             }
             $command.= $name;
@@ -194,7 +194,7 @@ class Swarmifier
             $managers = $this->getManagers();
             $manager = $managers[array_rand($managers, 1)];
             $this->swarmCredentials['ClusterId'] = $manager->sshRun('docker info 2>/dev/null | grep ClusterID | awk \'{$1=$1};1\' | cut -d \' \' -f2');
-            if($this->swarmCredentials['ClusterId'] != '') {
+            if ($this->swarmCredentials['ClusterId'] != '') {
                 $this->makeJoinToken($manager, 'worker');
                 $this->makeJoinToken($manager, 'manager');
             }

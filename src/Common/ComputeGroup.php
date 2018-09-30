@@ -179,7 +179,7 @@ class ComputeGroup extends Entity
     public function addCompute(Compute $compute)
     {
         $compute->addTag($this->getComputeGroupTag());
-        foreach($this->getTags() as $tag) {
+        foreach ($this->getTags() as $tag) {
             $compute->addTag($tag);
         }
         $this->compute[] = $compute;
@@ -522,7 +522,8 @@ class ComputeGroup extends Entity
         CloudDoctor::Monolog()->addDebug("        │");
     }
 
-    public function restartDocker(){
+    public function restartDocker()
+    {
         if ($this->getCompute()) {
             foreach ($this->getCompute() as $compute) {
                 if (stripos($compute->sshRun('ls -l /lib/systemd/system/docker.service'), "No such file or directory") === false) {
@@ -649,7 +650,7 @@ class ComputeGroup extends Entity
     
     public function updateMetaData() : void
     {
-        foreach($this->getCompute() as $compute){
+        foreach ($this->getCompute() as $compute) {
             $compute->updateMetaData();
         }
     }

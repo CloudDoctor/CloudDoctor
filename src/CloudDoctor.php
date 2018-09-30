@@ -279,8 +279,8 @@ class CloudDoctor
         $swarmifier->assertDefaultNetworks();
 
         $directory = new \DirectoryIterator("stacks/");
-        foreach($directory as $file){
-            if($file->isFile() && !$file->isDot() && $file->getExtension() == 'yml'){
+        foreach ($directory as $file) {
+            if ($file->isFile() && !$file->isDot() && $file->getExtension() == 'yml') {
                 $name = str_replace(".yml", "", $file->getFilename());
                 $swarmifier->assertStack($name, $file);
             }
@@ -447,11 +447,11 @@ class CloudDoctor
     public function watch(Cli $cli) : void
     {
         self::Monolog()->addDebug("Watching for changes...");
-        while(true){
-            if($this->configFilesChanged()){
+        while (true) {
+            if ($this->configFilesChanged()) {
                 $cli->assertFromFiles();
                 $this->scale();
-            }else{
+            } else {
                 sleep(3);
             }
         }
@@ -476,7 +476,7 @@ class CloudDoctor
 
         $swarmifier->downloadCerts();
         foreach (self::$computeGroups as $computeGroup) {
-            if($computeGroup->getRole() == 'manager') {
+            if ($computeGroup->getRole() == 'manager') {
                 /** @var ComputeGroup */
                 $computeGroup->downloadCerts();
             }
@@ -486,9 +486,9 @@ class CloudDoctor
     private function configFilesChanged() : bool
     {
         $changed = false;
-        foreach($this->fileMD5s as $filename => $currentMD5){
+        foreach ($this->fileMD5s as $filename => $currentMD5) {
             $newMD5 = md5_file($filename);
-            if($currentMD5 != $newMD5){
+            if ($currentMD5 != $newMD5) {
                 CloudDoctor::Monolog()->debug("File {$filename} has changed!");
                 $this->fileMD5s[$filename] = $newMD5;
                 $changed = true;
