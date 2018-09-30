@@ -252,12 +252,12 @@ class CloudDoctor
     {
         self::Monolog()->addDebug("DEPLOY──┐");
         foreach (self::$computeGroups as $computeGroup) {
-            //$computeGroup->deploy();
-            //$computeGroup->waitForRunning();
+            $computeGroup->deploy();
+            $computeGroup->updateMetaData();
+            $computeGroup->waitForRunning();
             $computeGroup->setHostNames();
-            //$computeGroup->runScript('install');
+            $computeGroup->runScript('install');
         }
-        exit;
 
         $roleGroups = [];
         CloudDoctor::Monolog()->addDebug("        ├┬ Dockerisation:");
@@ -277,6 +277,7 @@ class CloudDoctor
                 }
             }
             $computeGroup->applyDockerEngineConfig();
+            $computeGroup->restartDocker();
         }
         $this->deploy_swarmify();
         $this->deploy_dnsEnforce();
@@ -294,13 +295,14 @@ class CloudDoctor
             }
         }
 
-        \Kint::dump($roleGroups);
         $swarmifier = new Swarmifier(
             isset($roleGroups['manager']) ? $roleGroups['manager'] : null,
             isset($roleGroups['worker']) ? $roleGroups['worker'] : null
         );
 
         $swarmifier->swarmify();
+
+        $this->downloadCerts();
     }
 
     public function deploy_dnsEnforce() : void
@@ -383,7 +385,7 @@ class CloudDoctor
         self::Monolog()->addDebug("SCALE───┐");
         foreach (self::$computeGroups as $computeGroup) {
             CloudDoctor::Monolog()->addDebug("        ├┬ Checking Compute Group: {$computeGroup->getGroupName()}");
-            $computeGroup->updateTags();
+            $computeGroup->updateMetaData();
             CloudDoctor::Monolog()->addDebug("        │├─ Scale Desired: {$computeGroup->getScale()}");
             CloudDoctor::Monolog()->addDebug("        │├─ Scale Current: {$computeGroup->countComputes()}");
             if ($computeGroup->isScalingRequired() == 0) {
@@ -435,7 +437,6 @@ class CloudDoctor
 
         $swarmifier->downloadCerts();
         foreach (self::$computeGroups as $computeGroup) {
-            \Kint::dump($computeGroup->getRole());
             if($computeGroup->getRole() == 'manager') {
                 /** @var ComputeGroup */
                 $computeGroup->downloadCerts();
@@ -459,9 +460,12 @@ class CloudDoctor
 
     private function certificatesValid()
     {
+        return false;
         $okay = true;
         foreach (['ca.pem', 'server-cert.pem', 'server-key.pem', 'client-cert.pem', 'client-key.pem'] as $cert) {
-            if (!(file_exists($cert) && filesize($cert) > 0)) {
+            $file = "config/{$cert}";
+            if (!(file_exists($file) && filesize($file) > 0)) {
+                echo "{$file} is not OK\n";
                 $okay = false;
             }
         }

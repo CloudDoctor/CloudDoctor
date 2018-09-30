@@ -45,5 +45,5 @@ interface ComputeInterface
 
     public function addTag(string $tag) : ComputeInterface;
 
-    public function updateTags() : void;
+    public function updateMetaData() : void;
 }
