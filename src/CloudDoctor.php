@@ -8,6 +8,7 @@ use CloudDoctor\Common\DnsEnforcer;
 use CloudDoctor\Common\Request;
 use CloudDoctor\Common\Swarmifier;
 use CloudDoctor\Exceptions\CloudDefinitionException;
+use CloudDoctor\Interfaces\ComputeGroupInterface;
 use CloudDoctor\Linode\DNSController;
 use GuzzleHttp\Exception\ClientException;
 use Hackzilla\PasswordGenerator\Generator\ComputerPasswordGenerator;
@@ -98,20 +99,20 @@ class CloudDoctor
 
         if ($overrideFileName && file_exists($overrideFileName)) {
             $cloudOverrideDefinition = \Symfony\Component\Yaml\Yaml::parseFile($overrideFileName);
-            $cloudDefinition = $this->arrayOverwrite($cloudDefinition, $cloudOverrideDefinition);
+            $cloudDefinition = $this->arrayOverwrite($cloudDefinition, $cloudOverrideDefinition ?? []);
             $this->fileMD5s[$overrideFileName] = md5_file($overrideFileName);
         }
 
         if ($automaticControlOverrideFile && file_exists($automaticControlOverrideFile)) {
             $automaticControlOverrideDefinition = \Symfony\Component\Yaml\Yaml::parseFile($automaticControlOverrideFile);
-            $cloudDefinition = $this->arrayOverwrite($cloudDefinition, $automaticControlOverrideDefinition);
+            $cloudDefinition = $this->arrayOverwrite($cloudDefinition, $automaticControlOverrideDefinition ?? []);
             $this->fileMD5s[$automaticControlOverrideFile] = md5_file($automaticControlOverrideFile);
         }
 
         $this->assert($cloudDefinition);
     }
 
-    private function arrayOverwrite(array & $array1, array & $array2)
+    private function arrayOverwrite(array $array1, array $array2)
     {
         $merged = $array1;
 
@@ -409,6 +410,34 @@ class CloudDoctor
                 $this->scale();
             }else{
                 sleep(3);
+            }
+        }
+    }
+
+    public function downloadCerts() : void
+    {
+        self::Monolog()->addDebug("Downloading certs...");
+        $roleGroups = [];
+
+        foreach (self::$computeGroups as $computeGroup) {
+            if ($computeGroup->getCompute()) {
+                foreach ($computeGroup->getCompute() as $compute) {
+                    $roleGroups[$computeGroup->getRole()][] = $compute;
+                }
+            }
+        }
+
+        $swarmifier = new Swarmifier(
+            isset($roleGroups['manager']) ? $roleGroups['manager'] : null,
+            isset($roleGroups['worker']) ? $roleGroups['worker'] : null
+        );
+
+        $swarmifier->downloadCerts();
+        foreach (self::$computeGroups as $computeGroup) {
+            \Kint::dump($computeGroup->getRole());
+            if($computeGroup->getRole() == 'manager') {
+                /** @var ComputeGroup */
+                $computeGroup->downloadCerts();
             }
         }
     }

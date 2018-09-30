@@ -391,7 +391,6 @@ class ComputeGroup extends Entity
         $masterCompute->sshRun("openssl genrsa -aes256 -passout pass:{$caPassword} -out ca-key.pem 4096");
         $masterCompute->sshRun("openssl req -new -x509 -passin pass:{$caPassword} -days 365 -key ca-key.pem -sha256 -out ca.pem -subj \"{$this->tls['subject']}\"");
         $masterCompute->sshRun("chmod -v 0444 ca.pem");
-        $masterCompute->sshDownloadFile("ca.pem", "config/ca.pem");
         CloudDoctor::Monolog()->addDebug("        │││└ Downloaded ca.pem");
 
         // Making a server cert
@@ -403,8 +402,6 @@ class ComputeGroup extends Entity
         $masterCompute->sshRun("cat extfile.server.cnf");
         $masterCompute->sshRun("openssl x509 -req -days 365 -sha256 -in server.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out server-cert.pem -extfile extfile.server.cnf -passin pass:{$caPassword}");
         $masterCompute->sshRun("chmod -v 0444 server-cert.pem server-key.pem");
-        $masterCompute->sshDownloadFile("server-cert.pem", "config/server-cert.pem");
-        $masterCompute->sshDownloadFile("server-key.pem", "config/server-key.pem");
         CloudDoctor::Monolog()->addDebug("        │││└ Downloaded server-cert.pem server-key.pem");
 
         // Now making a client cert
@@ -414,12 +411,30 @@ class ComputeGroup extends Entity
         $masterCompute->sshRun("echo extendedKeyUsage = clientAuth >> extfile.client.cnf");
         $masterCompute->sshRun("openssl x509 -req -days 365 -sha256 -in client.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out client-cert.pem -extfile extfile.client.cnf -passin pass:{$caPassword}");
         $masterCompute->sshRun("chmod -v 0444 cert.pem");
+        CloudDoctor::Monolog()->addDebug("        │││└ Downloaded client-cert.pem & client-key.pem");
+
+        // Download certs
+        $masterCompute->sshDownloadFile("ca.pem", "config/ca.pem");
+        $masterCompute->sshDownloadFile("server-cert.pem", "config/server-cert.pem");
+        $masterCompute->sshDownloadFile("server-key.pem", "config/server-key.pem");
         $masterCompute->sshDownloadFile("client-cert.pem", "config/client-cert.pem");
         $masterCompute->sshDownloadFile("client-key.pem", "config/client-key.pem");
-        CloudDoctor::Monolog()->addDebug("        │││└ Downloaded client-cert.pem & client-key.pem");
 
         // Post generation cleanup
         $this->generateTlsCleanup($masterCompute);
+    }
+
+    public function downloadCerts() : void
+    {
+        if(!$masterCompute){
+            $computes = $this->getCompute();
+            $masterCompute = $computes[array_rand($computes, 1)];
+        }
+        $masterCompute->sshDownloadFile("/etc/docker/ca.pem", "config/ca.pem");
+        $masterCompute->sshDownloadFile("/etc/docker/server-cert.pem", "config/server-cert.pem");
+        $masterCompute->sshDownloadFile("/etc/docker/server-key.pem", "config/server-key.pem");
+        $masterCompute->sshDownloadFile("/etc/docker/client-cert.pem", "config/client-cert.pem");
+        $masterCompute->sshDownloadFile("/etc/docker/client-key.pem", "config/client-key.pem");
     }
 
     public function getPublicIps(): array
@@ -449,7 +464,7 @@ class ComputeGroup extends Entity
                     // Set hostname
                     $compute->sshRun("echo \"{$newHostname}\" > /etc/hostname");
                     $compute->sshRun("echo -e \"127.0.0.1\t{$newHostname}\n$(cat /etc/hosts)\" > /etc/hosts");
-                    $compute->sshUploadFile("config/hostname.sh", "hostname.sh");
+                    $compute->sshUploadFile("assets/hostname.sh", "hostname.sh");
                     $compute->sshRun("/bin/bash hostname.sh; rm hostname.sh");
                     CloudDoctor::Monolog()->addDebug("        │└ Renamed '{$currentHostname}' to '{$newHostname}'...");
                 } else {
@@ -497,6 +512,8 @@ class ComputeGroup extends Entity
                     if ($compute->getComputeGroup()->isTls()) {
                         $compute->sshUploadFile("config/server-cert.pem", "/etc/docker/server-cert.pem");
                         $compute->sshUploadFile("config/server-key.pem", "/etc/docker/server-key.pem");
+                        $compute->sshUploadFile("config/client-cert.pem", "/etc/docker/client-cert.pem");
+                        $compute->sshUploadFile("config/client-key.pem", "/etc/docker/client-key.pem");
                         $compute->sshUploadFile("config/ca.pem", "/etc/docker/ca.pem");
                     }
 

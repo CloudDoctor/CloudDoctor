@@ -144,6 +144,19 @@ class Swarmifier
         }
     }
 
+    public function downloadCerts()
+    {
+        if ($this->getManagers()) {
+            $managers = $this->getManagers();
+            $manager = $managers[array_rand($managers, 1)];
+            $this->swarmCredentials['ClusterId'] = $manager->sshRun('docker info 2>/dev/null | grep ClusterID | awk \'{$1=$1};1\' | cut -d \' \' -f2');
+            if($this->swarmCredentials['ClusterId'] != '') {
+                $this->makeJoinToken($manager, 'worker');
+                $this->makeJoinToken($manager, 'manager');
+            }
+        }
+    }
+
     /**
      * @return ComputeInterface[]
      */
