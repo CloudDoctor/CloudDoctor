@@ -248,7 +248,17 @@ class CloudDoctor
         }
     }
 
-    public function deploy()
+    public function updateMetaData() :void
+    {
+        self::Monolog()->addDebug("UPDMETA─┐");
+        foreach (self::$computeGroups as $i => $computeGroup) {
+            CloudDoctor::Monolog()->addDebug("        ├┬ Compute Group \"{$computeGroup->getGroupName()}\"");
+            $computeGroup->updateMetaData();
+            CloudDoctor::Monolog()->addDebug("        │└─ Done!");
+        }
+    }
+
+    public function deploy() :void
     {
         self::Monolog()->addDebug("DEPLOY──┐");
         foreach (self::$computeGroups as $computeGroup) {
