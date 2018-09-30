@@ -426,10 +426,8 @@ class ComputeGroup extends Entity
 
     public function downloadCerts() : void
     {
-        if(!$masterCompute){
-            $computes = $this->getCompute();
-            $masterCompute = $computes[array_rand($computes, 1)];
-        }
+        $computes = $this->getCompute();
+        $masterCompute = $computes[array_rand($computes, 1)];
         $masterCompute->sshDownloadFile("/etc/docker/ca.pem", "config/ca.pem");
         $masterCompute->sshDownloadFile("/etc/docker/server-cert.pem", "config/server-cert.pem");
         $masterCompute->sshDownloadFile("/etc/docker/server-key.pem", "config/server-key.pem");
