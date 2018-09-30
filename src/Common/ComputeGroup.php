@@ -509,7 +509,6 @@ class ComputeGroup extends Entity
                 $compute->sshUploadFile($daemonFilePath, "/etc/docker/daemon.json");
                 unlink($daemonFilePath);
                 if ($compute->getComputeGroup()->isTls()) {
-                    echo "******YO******\n";
                     $compute->sshUploadFile("config/server-cert.pem", "/etc/docker/server-cert.pem");
                     $compute->sshUploadFile("config/server-key.pem", "/etc/docker/server-key.pem");
                     $compute->sshUploadFile("config/client-cert.pem", "/etc/docker/client-cert.pem");
@@ -528,12 +527,12 @@ class ComputeGroup extends Entity
             foreach ($this->getCompute() as $compute) {
                 if (stripos($compute->sshRun('ls -l /lib/systemd/system/docker.service'), "No such file or directory") === false) {
                     // systemd present :(
-                    $compute->sshRunDebug("sed -i 's/ExecStart=.*/ExecStart\=\/usr\/bin\/dockerd/' /lib/systemd/system/docker.service");
-                    $compute->sshRunDebug("systemctl daemon-reload");
-                    $compute->sshRunDebug("systemctl restart docker.service");
+                    $compute->sshRun("sed -i 's/ExecStart=.*/ExecStart\=\/usr\/bin\/dockerd/' /lib/systemd/system/docker.service");
+                    $compute->sshRun("systemctl daemon-reload");
+                    $compute->sshRun("systemctl restart docker.service");
                 } else {
                     // systemd not present :)
-                    $compute->sshRunDebug("/etc/init.d/docker restart");
+                    $compute->sshRun("/etc/init.d/docker restart");
                 }
             }
         }

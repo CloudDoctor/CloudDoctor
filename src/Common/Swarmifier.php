@@ -12,8 +12,15 @@ class Swarmifier
     protected $workers;
     /** @var ComputeInterface[] */
     protected $managers;
-
+    /** @var string[] */
     protected $swarmCredentials;
+    /** @var array */
+    private $defaultNetworks = [
+        'loadbalancer' => [
+            'attachable' => true,
+            'driver'     => 'overlay',
+        ]
+    ];
 
     /**
      * Swarmifier constructor.
@@ -33,6 +40,43 @@ class Swarmifier
         if (file_exists("config/swarm-tokens.yml")) {
             $this->swarmCredentials = Yaml::parseFile("config/swarm-tokens.yml");
         }
+    }
+
+    private function pickRandomManager() : ComputeInterface
+    {
+        $allManagers = $this->getManagers();
+        $chosenManager = $allManagers[array_rand($allManagers,1)];
+        return $chosenManager;
+    }
+
+    public function assertDefaultNetworks() : void
+    {
+        $chosenManager = $this->pickRandomManager();
+        foreach($this->defaultNetworks as $name => $config) {
+            CloudDoctor::Monolog()->addDebug("        ├┬ Network {$name}:");
+            $command = "docker network create ";
+            if(isset($config['attachable']) && $config['attachable'] == true){
+                $command.= "--attachable ";
+            }
+            if(isset($config['driver'])){
+                $command.= "--driver {$config['driver']} ";
+            }
+            $command.= $name;
+            $chosenManager->sshRunDebug($command);
+            CloudDoctor::Monolog()->addDebug("        │└ Done!");
+        }
+    }
+
+    public function assertStack(string $stackName, \DirectoryIterator $stackFile): void
+    {
+        CloudDoctor::Monolog()->addDebug("        ├┬ Stack {$stackName}:");
+        $chosenManager = $this->pickRandomManager();
+        CloudDoctor::Monolog()->addDebug("        │├ Running on \"{$chosenManager->getHostName()}\"");
+        $chosenManager->sshUploadFile($stackFile->getRealPath(), $stackFile->getFilename());
+        CloudDoctor::Monolog()->addDebug("        │├ Uploading \"{$stackFile->getFilename()}\"");
+        $chosenManager->sshRun("docker stack up --with-registry-auth --prune -c {$stackFile->getFilename()} {$stackName}");
+        CloudDoctor::Monolog()->addDebug("        │└ Deployed stack {$stackName}!");
+        $chosenManager->sshRun("rm {$stackFile->getFilename()}");
     }
 
     public function swarmify()

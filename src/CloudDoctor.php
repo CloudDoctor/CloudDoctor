@@ -258,6 +258,35 @@ class CloudDoctor
         }
     }
 
+    public function updateStacks() : void
+    {
+        self::Monolog()->addDebug("STACKS──┐");
+        $roleGroups = [];
+
+        foreach (self::$computeGroups as $computeGroup) {
+            if ($computeGroup->getCompute()) {
+                foreach ($computeGroup->getCompute() as $compute) {
+                    $roleGroups[$computeGroup->getRole()][] = $compute;
+                }
+            }
+        }
+
+        $swarmifier = new Swarmifier(
+            isset($roleGroups['manager']) ? $roleGroups['manager'] : null,
+            isset($roleGroups['worker']) ? $roleGroups['worker'] : null
+        );
+
+        $swarmifier->assertDefaultNetworks();
+
+        $directory = new \DirectoryIterator("stacks/");
+        foreach($directory as $file){
+            if($file->isFile() && !$file->isDot() && $file->getExtension() == 'yml'){
+                $name = str_replace(".yml", "", $file->getFilename());
+                $swarmifier->assertStack($name, $file);
+            }
+        }
+    }
+
     public function deploy() :void
     {
         self::Monolog()->addDebug("DEPLOY──┐");
@@ -291,6 +320,7 @@ class CloudDoctor
         }
         $this->deploy_swarmify();
         $this->deploy_dnsEnforce();
+        $this->updateStacks();
     }
 
     public function deploy_swarmify() : void
@@ -429,7 +459,6 @@ class CloudDoctor
 
     public function downloadCerts() : void
     {
-        self::Monolog()->addDebug("Downloading certs...");
         $roleGroups = [];
 
         foreach (self::$computeGroups as $computeGroup) {
@@ -470,7 +499,6 @@ class CloudDoctor
 
     private function certificatesValid()
     {
-        return false;
         $okay = true;
         foreach (['ca.pem', 'server-cert.pem', 'server-key.pem', 'client-cert.pem', 'client-key.pem'] as $cert) {
             $file = "config/{$cert}";
