@@ -457,7 +457,7 @@ class ComputeGroup extends Entity
         if ($this->getCompute()) {
             foreach ($this->getCompute() as $compute) {
                 CloudDoctor::Monolog()->addDebug("        ├┬ Hostname check: {$compute->getName()}");
-                $currentHostname = $compute->sshRun("cat /etc/hostname");
+                $currentHostname = $compute->sshRun("hostname -f");
                 $newHostname = $compute->getHostName();
                 CloudDoctor::Monolog()->addDebug("        │├ Should be '{$newHostname}'.");
                 if ($currentHostname != $newHostname) {

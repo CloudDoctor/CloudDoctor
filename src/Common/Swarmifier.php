@@ -76,7 +76,7 @@ class Swarmifier
         CloudDoctor::Monolog()->addDebug("        │├┬ Buzzing up {$compute->getName()} ( {$compute->getHostName()} )...");
 
         if ($type == 'manager') {
-            if (!$this->swarmCredentials || $this->swarmCredentials['ClusterId'] != '') {
+            if (!$this->swarmCredentials || $this->swarmCredentials['ClusterId'] == '') {
                 $compute->sshRun("docker swarm leave -f");
                 $compute->sshRun("docker swarm init --force-new-cluster");
                 $this->swarmCredentials['ClusterId'] = $compute->sshRun('docker info 2>/dev/null | grep ClusterID | awk \'{$1=$1};1\' | cut -d \' \' -f2');

@@ -252,11 +252,12 @@ class CloudDoctor
     {
         self::Monolog()->addDebug("DEPLOY──┐");
         foreach (self::$computeGroups as $computeGroup) {
-            $computeGroup->deploy();
-            $computeGroup->waitForRunning();
+            //$computeGroup->deploy();
+            //$computeGroup->waitForRunning();
             $computeGroup->setHostNames();
-            $computeGroup->runScript('install');
+            //$computeGroup->runScript('install');
         }
+        exit;
 
         $roleGroups = [];
         CloudDoctor::Monolog()->addDebug("        ├┬ Dockerisation:");
@@ -277,7 +278,6 @@ class CloudDoctor
             }
             $computeGroup->applyDockerEngineConfig();
         }
-
         $this->deploy_swarmify();
         $this->deploy_dnsEnforce();
     }
@@ -294,6 +294,7 @@ class CloudDoctor
             }
         }
 
+        \Kint::dump($roleGroups);
         $swarmifier = new Swarmifier(
             isset($roleGroups['manager']) ? $roleGroups['manager'] : null,
             isset($roleGroups['worker']) ? $roleGroups['worker'] : null
