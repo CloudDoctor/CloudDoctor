@@ -8,7 +8,7 @@ use CloudDoctor\Interfaces\ComputeInterface;
 use phpseclib\Net\SFTP;
 use phpseclib\Net\SSH2;
 
-class Compute extends Entity implements ComputeInterface
+abstract class Compute extends Entity implements ComputeInterface
 {
     /** @var string */
     protected $nameFormat;
@@ -122,9 +122,13 @@ class Compute extends Entity implements ComputeInterface
         $connected = false;
         while (!$connected) {
             $connection = $this->getSshConnection();
-            sleep(0.5);
-            if (microtime(true) - $start > $timeoutSeconds) {
-                throw new CloudDoctorException("Failure to run SSH command on '{$this->getName()}': {$command}");
+            if($connection != null) {
+                $connected = $connection->isConnected();
+            }else {
+                sleep(0.5);
+                if (microtime(true) - $start > $timeoutSeconds) {
+                    throw new CloudDoctorException("Failure to run SSH command on '{$this->getName()}': {$command}");
+                }
             }
         }
 
@@ -282,19 +286,19 @@ class Compute extends Entity implements ComputeInterface
         if (!$ssh) {
             return false;
         }
-        $ssh->disconnect();
+        #$ssh->disconnect();
         return true;
     }
 
     public function sshOkayWait() : void
     {
-        echo "Waiting for SSH to come up...";
+        #echo "Waiting for SSH to come up...";
         while(!$this->sshOkay()){
             // Wait for SSH to come up...
             sleep(0.5);
-            echo ".";
+            #echo ".";
         }
-        echo "\n";
+        #echo "\n";
     }
 
     /**

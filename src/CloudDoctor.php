@@ -140,6 +140,7 @@ class CloudDoctor
             self::Monolog()->warning("No .authorized-keys element in config, assuming ~/.ssh/id_rsa.pub");
             $cloudDefinition['authorized-keys'][] = trim(file_get_contents(getenv('HOME') . "/.ssh/id_rsa.pub"));
             self::$privateKeys[] = trim(file_get_contents(getenv('HOME') . "/.ssh/id_rsa"));
+            //@todo handle privatekeys coming from the config rather than files.
         }
         if (isset($cloudDefinition['logging'])) {
             $this->setupMonolog($cloudDefinition['logging']);
@@ -253,17 +254,17 @@ class CloudDoctor
 
     public function updateMetaData() :void
     {
-        self::Monolog()->addDebug("UPDMETA─┐");
+        self::Monolog()->addNotice("UPDMETA─┐");
         foreach (self::$computeGroups as $i => $computeGroup) {
-            CloudDoctor::Monolog()->addDebug("        ├┬ Compute Group \"{$computeGroup->getGroupName()}\"");
+            CloudDoctor::Monolog()->addNotice("        ├┬ Compute Group \"{$computeGroup->getGroupName()}\"");
             $computeGroup->updateMetaData();
-            CloudDoctor::Monolog()->addDebug("        │└─ Done!");
+            CloudDoctor::Monolog()->addNotice("        │└─ Done!");
         }
     }
 
     public function updateStacks() : void
     {
-        self::Monolog()->addDebug("STACKS──┐");
+        self::Monolog()->addNotice("STACKS──┐");
         $roleGroups = [];
 
         foreach (self::$computeGroups as $computeGroup) {

@@ -53,7 +53,7 @@ class Swarmifier
     {
         $chosenManager = $this->pickRandomManager();
         foreach($this->defaultNetworks as $name => $config) {
-            CloudDoctor::Monolog()->addDebug("        ├┬ Network {$name}:");
+            CloudDoctor::Monolog()->addNotice("        ├┬ Network {$name}:");
             $command = "docker network create ";
             if(isset($config['attachable']) && $config['attachable'] == true){
                 $command.= "--attachable ";
@@ -63,19 +63,19 @@ class Swarmifier
             }
             $command.= $name;
             $chosenManager->sshRunDebug($command);
-            CloudDoctor::Monolog()->addDebug("        │└ Done!");
+            CloudDoctor::Monolog()->addNotice("        │└ Done!");
         }
     }
 
     public function assertStack(string $stackName, \DirectoryIterator $stackFile): void
     {
-        CloudDoctor::Monolog()->addDebug("        ├┬ Stack {$stackName}:");
+        CloudDoctor::Monolog()->addNotice("        ├┬ Stack {$stackName}:");
         $chosenManager = $this->pickRandomManager();
-        CloudDoctor::Monolog()->addDebug("        │├ Running on \"{$chosenManager->getHostName()}\"");
+        CloudDoctor::Monolog()->addNotice("        │├ Running on \"{$chosenManager->getHostName()}\"");
         $chosenManager->sshUploadFile($stackFile->getRealPath(), $stackFile->getFilename());
-        CloudDoctor::Monolog()->addDebug("        │├ Uploading \"{$stackFile->getFilename()}\"");
+        CloudDoctor::Monolog()->addNotice("        │├ Uploading \"{$stackFile->getFilename()}\"");
         $chosenManager->sshRun("docker stack up --with-registry-auth --prune -c {$stackFile->getFilename()} {$stackName}");
-        CloudDoctor::Monolog()->addDebug("        │└ Deployed stack {$stackName}!");
+        CloudDoctor::Monolog()->addNotice("        │└ Deployed stack {$stackName}!");
         $chosenManager->sshRun("rm {$stackFile->getFilename()}");
     }
 
