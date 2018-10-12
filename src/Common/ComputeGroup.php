@@ -188,29 +188,32 @@ class ComputeGroup extends Entity
 
     public function deploy() : void
     {
-        CloudDoctor::Monolog()->addDebug("        ├┬ Compute Group '{$this->getGroupName()}':");
+        CloudDoctor::Monolog()->addNotice("        ├┬ Compute Group '{$this->getGroupName()}':");
         if ($this->getCompute()) {
             foreach ($this->getCompute() as $i => $compute) {
                 /** @var $compute ComputeInterface */
-                CloudDoctor::Monolog()->addDebug("        │├┬ {$compute->getName()} ( {$compute->getHostName()} ):");
+                CloudDoctor::Monolog()->addNotice("        │├┬ {$compute->getName()} ( {$compute->getHostName()} ):");
                 if (!$compute->exists()) {
                     $compute->deploy();
+                    $compute->sshOkayWait();
                 } else {
-                    CloudDoctor::Monolog()->addDebug("        ││├ {$compute->getName()} already exists...");
+                    CloudDoctor::Monolog()->addNotice("        ││├ {$compute->getName()} already exists...");
                     if ($compute->isTransitioning()) {
-                        CloudDoctor::Monolog()->addDebug("        ││└ {$compute->getName()} is changing state!...");
+                        CloudDoctor::Monolog()->addNotice("        ││└ {$compute->getName()} is changing state!...");
                     }
                     if ($compute->isRunning()) {
                         if (!$compute->sshOkay() || self::ALWAYS_REDEPLOY) {
-                            CloudDoctor::Monolog()->addDebug("        ││├ {$compute->getName()} cannot be ssh'd into!...");
+                            CloudDoctor::Monolog()->addNotice("        ││├┬ {$compute->getName()} cannot be ssh'd into!...");
                             $compute->destroy();
+                            CloudDoctor::Monolog()->addNotice("        │││└ {$compute->getName()} Destroyed!");
                             $compute->deploy();
+                            $compute->sshOkayWait();
                         } else {
-                            CloudDoctor::Monolog()->addDebug("        ││└ Already Running!");
+                            CloudDoctor::Monolog()->addNotice("        ││└ Already Running!");
                             if ($i != count($this->getCompute()) - 1) {
-                                CloudDoctor::Monolog()->addDebug("        ││");
+                                CloudDoctor::Monolog()->addNotice("        ││");
                             } else {
-                                CloudDoctor::Monolog()->addDebug("        │");
+                                CloudDoctor::Monolog()->addNotice("        │");
                             }
                         }
                     }
@@ -257,12 +260,12 @@ class ComputeGroup extends Entity
 
     public function waitForRunning(): void
     {
-        CloudDoctor::Monolog()->addDebug("        │├┬ Waiting for Compute Group '{$this->getGroupName()}' to be running...");
+        CloudDoctor::Monolog()->addNotice("        │├┬ Waiting for Compute Group '{$this->getGroupName()}' to be running...");
         while (!$this->isRunning()) {
             sleep(1);
         }
-        CloudDoctor::Monolog()->addDebug("        ││└ Done!");
-        CloudDoctor::Monolog()->addDebug("        ││");
+        CloudDoctor::Monolog()->addNotice("        ││└ Done!");
+        CloudDoctor::Monolog()->addNotice("        ││");
     }
 
     public function isRunning(): bool
@@ -282,7 +285,7 @@ class ComputeGroup extends Entity
     public function runScript(string $name): void
     {
         if (isset($this->scripts[$name])) {
-            CloudDoctor::Monolog()->addDebug("        ├┬ Running Scripts: {$name}");
+            CloudDoctor::Monolog()->addNotice("        ├┬ Running Scripts: {$name}");
 
             foreach ($this->scripts[$name] as $s => $script) {
                 if ($this->getCompute()) {
@@ -315,26 +318,26 @@ class ComputeGroup extends Entity
                                 }
                             }
                             if (!empty(trim($response))) {
-                                CloudDoctor::Monolog()->addDebug("        │├┬ {$compute->getName()} Running '{$script['command']}'");
+                                CloudDoctor::Monolog()->addNotice("        │├┬ {$compute->getName()} Running '{$script['command']}'");
                                 $lines = explode("\n", $response);
                                 foreach ($lines as $i => $line) {
                                     if ($i == count($lines) - 1) {
-                                        CloudDoctor::Monolog()->addDebug("        ││└─ {$line}");
+                                        CloudDoctor::Monolog()->addNotice("        ││└─ {$line}");
                                     } else {
-                                        CloudDoctor::Monolog()->addDebug("        ││├─ {$line}");
+                                        CloudDoctor::Monolog()->addNotice("        ││├─ {$line}");
                                     }
                                 }
                             } else {
-                                CloudDoctor::Monolog()->addDebug("        │├─ {$compute->getName()} Running '{$script['command']}'");
+                                CloudDoctor::Monolog()->addNotice("        │├─ {$compute->getName()} Running '{$script['command']}'");
                             }
                         } else {
-                            CloudDoctor::Monolog()->addDebug("        │├─ {$compute->getName()} Skipping '{$script['command']}'");
+                            CloudDoctor::Monolog()->addNotice("        │├─ {$compute->getName()} Skipping '{$script['command']}'");
                         }
-                        CloudDoctor::Monolog()->addDebug("        ││");
+                        CloudDoctor::Monolog()->addNotice("        ││");
                     }
                 }
             }
-            CloudDoctor::Monolog()->addDebug("        │");
+            CloudDoctor::Monolog()->addNotice("        │");
         }
     }
 
@@ -455,26 +458,26 @@ class ComputeGroup extends Entity
 
     public function setHostNames()
     {
-        CloudDoctor::Monolog()->addDebug("        │");
+        CloudDoctor::Monolog()->addNotice("        │");
         if ($this->getCompute()) {
             foreach ($this->getCompute() as $compute) {
                 CloudDoctor::Monolog()->addDebug("        ├┬ Hostname check: {$compute->getName()}");
                 $currentHostname = $compute->sshRun("hostname -f");
                 $newHostname = $compute->getHostName();
-                CloudDoctor::Monolog()->addDebug("        │├ Should be '{$newHostname}'.");
+                CloudDoctor::Monolog()->addNotice("        │├ Should be '{$newHostname}'.");
                 if ($currentHostname != $newHostname) {
                     // Set hostname
                     $compute->sshRun("echo \"{$newHostname}\" > /etc/hostname");
                     $compute->sshRun("echo -e \"127.0.0.1\t{$newHostname}\n$(cat /etc/hosts)\" > /etc/hosts");
                     $compute->sshUploadFile("assets/hostname.sh", "hostname.sh");
                     $compute->sshRun("/bin/bash hostname.sh; rm hostname.sh");
-                    CloudDoctor::Monolog()->addDebug("        │└ Renamed '{$currentHostname}' to '{$newHostname}'...");
+                    CloudDoctor::Monolog()->addNotice("        │└ Renamed '{$currentHostname}' to '{$newHostname}'...");
                 } else {
-                    CloudDoctor::Monolog()->addDebug("        │└ Hostname already correct.");
+                    CloudDoctor::Monolog()->addNotice("        │└ Hostname already correct.");
                 }
             }
         }
-        CloudDoctor::Monolog()->addDebug("        │");
+        CloudDoctor::Monolog()->addNotice("        │");
     }
 
     public function applyDockerEngineConfig()

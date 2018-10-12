@@ -15,6 +15,8 @@ interface ComputeInterface
 
     public function sshOkay(): bool;
 
+    public function sshOkayWait() : void;
+
     public function sshRun(string $command): string;
 
     public function sshDownloadFile(string $remoteFile, string $localFile): bool;

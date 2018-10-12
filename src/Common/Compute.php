@@ -8,7 +8,7 @@ use CloudDoctor\Interfaces\ComputeInterface;
 use phpseclib\Net\SFTP;
 use phpseclib\Net\SSH2;
 
-class Compute extends Entity
+class Compute extends Entity implements ComputeInterface
 {
     /** @var string */
     protected $nameFormat;
@@ -91,14 +91,14 @@ class Compute extends Entity
 
     public function sshRunDebug(string $command): string
     {
-        CloudDoctor::Monolog()->addDebug("        │├┬ {$this->getName()} Running '{$command}':");
+        CloudDoctor::Monolog()->addNotice("        │├┬ {$this->getName()} Running '{$command}':");
         $response = $this->sshRun($command);
         if (!empty(trim($response))) {
             $lines = explode("\n", $response);
             foreach ($lines as $line) {
                 $line = trim($line);
                 if (!empty($line)) {
-                    CloudDoctor::Monolog()->addDebug("        ││└ {$line}");
+                    CloudDoctor::Monolog()->addNotice("        ││└ {$line}");
                 }
             }
         }
@@ -114,18 +114,27 @@ class Compute extends Entity
         return $this->name;
     }
 
-    public function sshRun(string $command): string
+    public function sshRun(string $command, int $maxAttempts = 3): string
     {
-        $timeoutSeconds = 60;
+        $timeoutSeconds = 20;
+        $attempts = 0;
         $start = microtime(true);
         $connected = false;
         while (!$connected) {
             $connection = $this->getSshConnection();
+            sleep(0.5);
+            if (microtime(true) - $start > $timeoutSeconds) {
+                throw new CloudDoctorException("Failure to run SSH command on '{$this->getName()}': {$command}");
+            }
+        }
+
+        $start = microtime(true);
+        while($attempts < $maxAttempts){
+            $attempts++;
             if ($connection instanceof SSH2) {
                 return trim($connection->exec(" " . $command));
             }
-            sleep(0.5);
-            if (microtime(true) - $start > $timeoutSeconds) {
+            if ($attempts == $maxAttempts && microtime(true) - $start > $timeoutSeconds) {
                 throw new CloudDoctorException("Failure to run SSH command on '{$this->getName()}': {$command}");
             }
         }
@@ -275,6 +284,17 @@ class Compute extends Entity
         }
         $ssh->disconnect();
         return true;
+    }
+
+    public function sshOkayWait() : void
+    {
+        echo "Waiting for SSH to come up...";
+        while(!$this->sshOkay()){
+            // Wait for SSH to come up...
+            sleep(0.5);
+            echo ".";
+        }
+        echo "\n";
     }
 
     /**
