@@ -112,8 +112,11 @@ class CloudDoctor
         $this->assert($cloudDefinition);
     }
 
-    private function arrayOverwrite(array $array1, array $array2)
+    private function arrayOverwrite(array $array1, array $array2 = null)
     {
+        if($array2 === null || !is_array($array2) || count($array2) == 0) {
+            return $array1;
+        }
         $merged = $array1;
 
         foreach ($array2 as $key => & $value) {
@@ -137,6 +140,7 @@ class CloudDoctor
             self::Monolog()->warning("No .authorized-keys element in config, assuming ~/.ssh/id_rsa.pub");
             $cloudDefinition['authorized-keys'][] = trim(file_get_contents(getenv('HOME') . "/.ssh/id_rsa.pub"));
             self::$privateKeys[] = trim(file_get_contents(getenv('HOME') . "/.ssh/id_rsa"));
+            //@todo handle privatekeys coming from the config rather than files.
         }
         if (isset($cloudDefinition['logging'])) {
             $this->setupMonolog($cloudDefinition['logging']);
@@ -250,17 +254,17 @@ class CloudDoctor
 
     public function updateMetaData() :void
     {
-        self::Monolog()->addDebug("UPDMETA─┐");
+        self::Monolog()->addNotice("UPDMETA─┐");
         foreach (self::$computeGroups as $i => $computeGroup) {
-            CloudDoctor::Monolog()->addDebug("        ├┬ Compute Group \"{$computeGroup->getGroupName()}\"");
+            CloudDoctor::Monolog()->addNotice("        ├┬ Compute Group \"{$computeGroup->getGroupName()}\"");
             $computeGroup->updateMetaData();
-            CloudDoctor::Monolog()->addDebug("        │└─ Done!");
+            CloudDoctor::Monolog()->addNotice("        │└─ Done!");
         }
     }
 
     public function updateStacks() : void
     {
-        self::Monolog()->addDebug("STACKS──┐");
+        self::Monolog()->addNotice("STACKS──┐");
         $roleGroups = [];
 
         foreach (self::$computeGroups as $computeGroup) {
@@ -289,7 +293,7 @@ class CloudDoctor
 
     public function deploy() :void
     {
-        self::Monolog()->addDebug("DEPLOY──┐");
+        self::Monolog()->addNotice("DEPLOY──┐");
         foreach (self::$computeGroups as $computeGroup) {
             $computeGroup->deploy();
             $computeGroup->updateMetaData();
@@ -299,9 +303,9 @@ class CloudDoctor
         }
 
         $roleGroups = [];
-        CloudDoctor::Monolog()->addDebug("        ├┬ Dockerisation:");
+        CloudDoctor::Monolog()->addNotice("        ├┬ Dockerisation:");
         foreach (self::$computeGroups as $computeGroup) {
-            self::Monolog()->addDebug("        │├┬ {$computeGroup->getGroupName()} has role {$computeGroup->getRole()}...");
+            self::Monolog()->addNotice("        │├┬ {$computeGroup->getGroupName()} has role {$computeGroup->getRole()}...");
             if ($computeGroup->getCompute()) {
                 foreach ($computeGroup->getCompute() as $compute) {
                     $roleGroups[$computeGroup->getRole()][] = $compute;
@@ -310,9 +314,9 @@ class CloudDoctor
             if ($computeGroup->isTls()) {
                 if (!$this->certificatesValid()) {
                     $computeGroup->generateTls();
-                    CloudDoctor::Monolog()->addDebug("        ││└ Certificates generated!");
+                    CloudDoctor::Monolog()->addNotice("        ││└ Certificates generated!");
                 } else {
-                    CloudDoctor::Monolog()->addDebug("        ││└ Certificates valid!");
+                    CloudDoctor::Monolog()->addNotice("        ││└ Certificates valid!");
                 }
             }
             $computeGroup->applyDockerEngineConfig();
@@ -365,8 +369,8 @@ class CloudDoctor
         $computeGroup->setHostNames();
         $computeGroup->runScript('install');
         $roleGroups = [];
-        CloudDoctor::Monolog()->addDebug("        ├┬ Dockerisation:");
-        self::Monolog()->addDebug("        │├┬ {$computeGroup->getGroupName()} has role {$computeGroup->getRole()}...");
+        CloudDoctor::Monolog()->addNotice("        ├┬ Dockerisation:");
+        self::Monolog()->addNotice("        │├┬ {$computeGroup->getGroupName()} has role {$computeGroup->getRole()}...");
         if ($computeGroup->getCompute()) {
             foreach ($computeGroup->getCompute() as $compute) {
                 $roleGroups[$computeGroup->getRole()][] = $compute;
@@ -375,9 +379,9 @@ class CloudDoctor
         if ($computeGroup->isTls()) {
             if (!$this->certificatesValid()) {
                 $computeGroup->generateTls();
-                CloudDoctor::Monolog()->addDebug("        ││└ Certificates generated!");
+                CloudDoctor::Monolog()->addNotice("        ││└ Certificates generated!");
             } else {
-                CloudDoctor::Monolog()->addDebug("        ││└ Certificates valid!");
+                CloudDoctor::Monolog()->addNotice("        ││└ Certificates valid!");
             }
         }
         $computeGroup->applyDockerEngineConfig();
@@ -388,67 +392,67 @@ class CloudDoctor
 
     public function show() : void
     {
-        self::Monolog()->addDebug("SCHEMA──┐");
+        self::Monolog()->addNotice("SCHEMA──┐");
         foreach (self::$computeGroups as $computeGroup) {
-            CloudDoctor::Monolog()->addDebug("        ├┬ Compute Group: {$computeGroup->getGroupName()}");
+            CloudDoctor::Monolog()->addNotice("        ├┬ Compute Group: {$computeGroup->getGroupName()}");
             foreach ($computeGroup->getCompute() as $compute) {
-                CloudDoctor::Monolog()->addDebug("        │├┬ Compute: {$compute->getName()}");
-                CloudDoctor::Monolog()->addDebug("        ││├ Hostname: {$compute->getHostName()}");
-                CloudDoctor::Monolog()->addDebug("        ││├┬ DNS Entries:");
+                CloudDoctor::Monolog()->addNotice("        │├┬ Compute: {$compute->getName()}");
+                CloudDoctor::Monolog()->addNotice("        ││├ Hostname: {$compute->getHostName()}");
+                CloudDoctor::Monolog()->addNotice("        ││├┬ DNS Entries:");
                 foreach ($compute->getHostNames() as $hostname) {
-                    CloudDoctor::Monolog()->addDebug("        │││├ {$hostname}");
+                    CloudDoctor::Monolog()->addNotice("        │││├ {$hostname}");
                 }
             }
-            CloudDoctor::Monolog()->addDebug("        │");
+            CloudDoctor::Monolog()->addNotice("        │");
         }
     }
 
     public function purge() : void
     {
-        self::Monolog()->addDebug("PURGE───┐");
+        self::Monolog()->addNotice("PURGE───┐");
         foreach (self::$computeGroups as $computeGroup) {
-            CloudDoctor::Monolog()->addDebug("        ├┬ Deleting Compute Group: {$computeGroup->getGroupName()}");
+            CloudDoctor::Monolog()->addNotice("        ├┬ Deleting Compute Group: {$computeGroup->getGroupName()}");
             foreach ($computeGroup->getCompute() as $compute) {
-                CloudDoctor::Monolog()->addDebug("        │├┬ Deleting Compute: {$compute->getName()}");
+                CloudDoctor::Monolog()->addNotice("        │├┬ Deleting Compute: {$compute->getName()}");
                 if ($compute->destroy()) {
-                    CloudDoctor::Monolog()->addDebug("        ││└─ Deleted!");
+                    CloudDoctor::Monolog()->addNotice("        ││└─ Deleted!");
                 } else {
-                    CloudDoctor::Monolog()->addDebug("        ││└─ Could not be deleted, does it exist?");
+                    CloudDoctor::Monolog()->addNotice("        ││└─ Could not be deleted, does it exist?");
                 }
             }
-            CloudDoctor::Monolog()->addDebug("        │");
+            CloudDoctor::Monolog()->addNotice("        │");
         }
     }
 
     public function scale() : void
     {
-        self::Monolog()->addDebug("SCALE───┐");
+        self::Monolog()->addNotice("SCALE───┐");
         foreach (self::$computeGroups as $computeGroup) {
-            CloudDoctor::Monolog()->addDebug("        ├┬ Checking Compute Group: {$computeGroup->getGroupName()}");
+            CloudDoctor::Monolog()->addNotice("        ├┬ Checking Compute Group: {$computeGroup->getGroupName()}");
             $computeGroup->updateMetaData();
-            CloudDoctor::Monolog()->addDebug("        │├─ Scale Desired: {$computeGroup->getScale()}");
-            CloudDoctor::Monolog()->addDebug("        │├─ Scale Current: {$computeGroup->countComputes()}");
+            CloudDoctor::Monolog()->addNotice("        │├─ Scale Desired: {$computeGroup->getScale()}");
+            CloudDoctor::Monolog()->addNotice("        │├─ Scale Current: {$computeGroup->countComputes()}");
             if ($computeGroup->isScalingRequired() == 0) {
-                CloudDoctor::Monolog()->addDebug("        │└─ Nothing to do!");
+                CloudDoctor::Monolog()->addNotice("        │└─ Nothing to do!");
             } else {
                 if ($computeGroup->isScalingRequired() > 0) {
-                    CloudDoctor::Monolog()->addDebug("        │└─ Need to scale by {$computeGroup->isScalingRequired()}!");
+                    CloudDoctor::Monolog()->addNotice("        │└─ Need to scale by {$computeGroup->isScalingRequired()}!");
                     $computeGroup->scaleUp();
                 } else {
-                    CloudDoctor::Monolog()->addDebug("        │└┬ Need to scale by {$computeGroup->isScalingRequired()}!");
+                    CloudDoctor::Monolog()->addNotice("        │└┬ Need to scale by {$computeGroup->isScalingRequired()}!");
                     $computeGroup->scaleDown();
-                    CloudDoctor::Monolog()->addDebug("        │ └─ Deleted!");
+                    CloudDoctor::Monolog()->addNotice("        │ └─ Deleted!");
                 }
             }
-            CloudDoctor::Monolog()->addDebug("        │");
+            CloudDoctor::Monolog()->addNotice("        │");
         }
     }
 
     public function watch(Cli $cli) : void
     {
-        self::Monolog()->addDebug("Watching for changes...");
-        while (true) {
-            if ($this->configFilesChanged()) {
+        self::Monolog()->addNotice("Watching for changes...");
+        while(true){
+            if($this->configFilesChanged()){
                 $cli->assertFromFiles();
                 $this->scale();
             } else {

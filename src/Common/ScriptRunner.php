@@ -26,7 +26,7 @@ class ScriptRunner
 
     public function swarmify()
     {
-        CloudDoctor::Monolog()->addDebug("        ├┬ Building Swarm:");
+        CloudDoctor::Monolog()->addNotice("        ├┬ Building Swarm:");
         $this->swarmifyManagers();
         $this->swarmifyWorkers();
     }
@@ -58,7 +58,7 @@ class ScriptRunner
 
     protected function prep(Compute $compute)
     {
-        CloudDoctor::Monolog()->addDebug("    > Buzzing up {$compute->getName()}...");
+        CloudDoctor::Monolog()->addNotice("    > Buzzing up {$compute->getName()}...");
     }
 
     protected function swarmifyWorkers()

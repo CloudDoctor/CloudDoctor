@@ -27,7 +27,7 @@ class DnsEnforcer
 
     public function enforce(): void
     {
-        CloudDoctor::Monolog()->addDebug("        ├┬ Updating DNS:");
+        CloudDoctor::Monolog()->addNotice("        ├┬ Updating DNS:");
         $dnsList = [];
         foreach ($this->getComputes() as $compute) {
             /** @var $compute ComputeInterface */
@@ -48,7 +48,7 @@ class DnsEnforcer
                             $dnsController->createRecord('a', $domain, $ip);
                         }
                     } else {
-                        CloudDoctor::Monolog()->addDebug("        │├ Already Complete: {$domain}");
+                        CloudDoctor::Monolog()->addNotice("        │├ Already Complete: {$domain}");
                     }
                 }
             }
@@ -60,12 +60,12 @@ class DnsEnforcer
                             $dnsController->createRecord('cname', $domain, $value);
                         }
                     } else {
-                        CloudDoctor::Monolog()->addDebug("        │├ Already Complete: {$domain}");
+                        CloudDoctor::Monolog()->addNotice("        │├ Already Complete: {$domain}");
                     }
                 }
             }
         }
-        CloudDoctor::Monolog()->addDebug("        │└  Updating DNS Complete");
+        CloudDoctor::Monolog()->addNotice("        │└  Updating DNS Complete");
     }
 
     /**

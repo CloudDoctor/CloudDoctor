@@ -52,8 +52,8 @@ class Swarmifier
     public function assertDefaultNetworks() : void
     {
         $chosenManager = $this->pickRandomManager();
-        foreach ($this->defaultNetworks as $name => $config) {
-            CloudDoctor::Monolog()->addDebug("        ├┬ Network {$name}:");
+        foreach($this->defaultNetworks as $name => $config) {
+            CloudDoctor::Monolog()->addNotice("        ├┬ Network {$name}:");
             $command = "docker network create ";
             if (isset($config['attachable']) && $config['attachable'] == true) {
                 $command.= "--attachable ";
@@ -63,29 +63,29 @@ class Swarmifier
             }
             $command.= $name;
             $chosenManager->sshRunDebug($command);
-            CloudDoctor::Monolog()->addDebug("        │└ Done!");
+            CloudDoctor::Monolog()->addNotice("        │└ Done!");
         }
     }
 
     public function assertStack(string $stackName, \DirectoryIterator $stackFile): void
     {
-        CloudDoctor::Monolog()->addDebug("        ├┬ Stack {$stackName}:");
+        CloudDoctor::Monolog()->addNotice("        ├┬ Stack {$stackName}:");
         $chosenManager = $this->pickRandomManager();
-        CloudDoctor::Monolog()->addDebug("        │├ Running on \"{$chosenManager->getHostName()}\"");
+        CloudDoctor::Monolog()->addNotice("        │├ Running on \"{$chosenManager->getHostName()}\"");
         $chosenManager->sshUploadFile($stackFile->getRealPath(), $stackFile->getFilename());
-        CloudDoctor::Monolog()->addDebug("        │├ Uploading \"{$stackFile->getFilename()}\"");
+        CloudDoctor::Monolog()->addNotice("        │├ Uploading \"{$stackFile->getFilename()}\"");
         $chosenManager->sshRun("docker stack up --with-registry-auth --prune -c {$stackFile->getFilename()} {$stackName}");
-        CloudDoctor::Monolog()->addDebug("        │└ Deployed stack {$stackName}!");
+        CloudDoctor::Monolog()->addNotice("        │└ Deployed stack {$stackName}!");
         $chosenManager->sshRun("rm {$stackFile->getFilename()}");
     }
 
     public function swarmify()
     {
-        CloudDoctor::Monolog()->addDebug("        ├┬ Building Swarm...");
+        CloudDoctor::Monolog()->addNotice("        ├┬ Building Swarm...");
         $this->swarmifyManagers();
         $this->swarmifyWorkers();
         $this->cleanupSwarm();
-        CloudDoctor::Monolog()->addDebug("        │");
+        CloudDoctor::Monolog()->addNotice("        │");
     }
 
     protected function swarmifyManagers()
@@ -117,7 +117,7 @@ class Swarmifier
 
     protected function prep(ComputeInterface $compute, string $type)
     {
-        CloudDoctor::Monolog()->addDebug("        │├┬ Buzzing up {$compute->getName()} ( {$compute->getHostName()} )...");
+        CloudDoctor::Monolog()->addNotice("        │├┬ Buzzing up {$compute->getName()} ( {$compute->getHostName()} )...");
 
         if ($type == 'manager') {
             if (!$this->swarmCredentials || $this->swarmCredentials['ClusterId'] == '') {
@@ -131,31 +131,31 @@ class Swarmifier
                 $clusterId = $compute->sshRun('docker info 2>/dev/null | grep ClusterID | awk \'{$1=$1};1\' | cut -d \' \' -f2');
                 if ($clusterId != $this->swarmCredentials['ClusterId'] || $clusterId == '') {
                     if ($clusterId == '') {
-                        CloudDoctor::Monolog()->addDebug("        ││└┬ Docker Cluster ID '{$clusterId}' is empty, reasserting...");
+                        CloudDoctor::Monolog()->addNotice("        ││└┬ Docker Cluster ID '{$clusterId}' is empty, reasserting...");
                     } else {
-                        CloudDoctor::Monolog()->addDebug("        ││└┬ Docker Cluster ID '{$clusterId}' does not match expected Cluster ID '{$this->swarmCredentials['ClusterId']}', reasserting...");
+                        CloudDoctor::Monolog()->addNotice("        ││└┬ Docker Cluster ID '{$clusterId}' does not match expected Cluster ID '{$this->swarmCredentials['ClusterId']}', reasserting...");
                     }
                     $compute->sshRun("docker swarm leave -f");
                     $compute->sshRun($this->swarmCredentials[$type]);
-                    CloudDoctor::Monolog()->addDebug("        ││ └ DONE!");
+                    CloudDoctor::Monolog()->addNotice("        ││ └ DONE!");
                 } else {
-                    CloudDoctor::Monolog()->addDebug("        ││└ Docker Cluster ID '{$clusterId}' matches, nothing to do...");
+                    CloudDoctor::Monolog()->addNotice("        ││└ Docker Cluster ID '{$clusterId}' matches, nothing to do...");
                 }
             }
         } else {
             $clusterId = $compute->sshRun('cat .clusterid');
             if ($clusterId != $this->swarmCredentials['ClusterId'] || $clusterId == '') {
                 if ($clusterId == '') {
-                    CloudDoctor::Monolog()->addDebug("        ││└┬ Docker Cluster ID '{$clusterId}' is empty, reasserting...");
+                    CloudDoctor::Monolog()->addNotice("        ││└┬ Docker Cluster ID '{$clusterId}' is empty, reasserting...");
                 } else {
-                    CloudDoctor::Monolog()->addDebug("        ││└┬ Docker Cluster ID '{$clusterId}' does not match expected Cluster ID '{$this->swarmCredentials['ClusterId']}', reasserting...");
+                    CloudDoctor::Monolog()->addNotice("        ││└┬ Docker Cluster ID '{$clusterId}' does not match expected Cluster ID '{$this->swarmCredentials['ClusterId']}', reasserting...");
                 }
                 $compute->sshRun("docker swarm leave -f");
                 $compute->sshRun($this->swarmCredentials[$type]);
                 $compute->sshRun("echo \"{$this->swarmCredentials['ClusterId']}\" > .clusterid");
-                CloudDoctor::Monolog()->addDebug("        ││ └ DONE!");
+                CloudDoctor::Monolog()->addNotice("        ││ └ DONE!");
             } else {
-                CloudDoctor::Monolog()->addDebug("        ││└ Docker Cluster ID '{$clusterId}' matches, nothing to do...");
+                CloudDoctor::Monolog()->addNotice("        ││└ Docker Cluster ID '{$clusterId}' matches, nothing to do...");
             }
         }
     }

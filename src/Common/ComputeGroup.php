@@ -188,29 +188,32 @@ class ComputeGroup extends Entity
 
     public function deploy() : void
     {
-        CloudDoctor::Monolog()->addDebug("        ├┬ Compute Group '{$this->getGroupName()}':");
+        CloudDoctor::Monolog()->addNotice("        ├┬ Compute Group '{$this->getGroupName()}':");
         if ($this->getCompute()) {
             foreach ($this->getCompute() as $i => $compute) {
                 /** @var $compute ComputeInterface */
-                CloudDoctor::Monolog()->addDebug("        │├┬ {$compute->getName()} ( {$compute->getHostName()} ):");
+                CloudDoctor::Monolog()->addNotice("        │├┬ {$compute->getName()} ( {$compute->getHostName()} ):");
                 if (!$compute->exists()) {
                     $compute->deploy();
+                    $compute->sshOkayWait();
                 } else {
-                    CloudDoctor::Monolog()->addDebug("        ││├ {$compute->getName()} already exists...");
+                    CloudDoctor::Monolog()->addNotice("        ││├ {$compute->getName()} already exists...");
                     if ($compute->isTransitioning()) {
-                        CloudDoctor::Monolog()->addDebug("        ││└ {$compute->getName()} is changing state!...");
+                        CloudDoctor::Monolog()->addNotice("        ││└ {$compute->getName()} is changing state!...");
                     }
                     if ($compute->isRunning()) {
                         if (!$compute->sshOkay() || self::ALWAYS_REDEPLOY) {
-                            CloudDoctor::Monolog()->addDebug("        ││├ {$compute->getName()} cannot be ssh'd into!...");
+                            CloudDoctor::Monolog()->addNotice("        ││├┬ {$compute->getName()} cannot be ssh'd into!...");
                             $compute->destroy();
+                            CloudDoctor::Monolog()->addNotice("        │││└ {$compute->getName()} Destroyed!");
                             $compute->deploy();
+                            $compute->sshOkayWait();
                         } else {
-                            CloudDoctor::Monolog()->addDebug("        ││└ Already Running!");
+                            CloudDoctor::Monolog()->addNotice("        ││└ Already Running!");
                             if ($i != count($this->getCompute()) - 1) {
-                                CloudDoctor::Monolog()->addDebug("        ││");
+                                CloudDoctor::Monolog()->addNotice("        ││");
                             } else {
-                                CloudDoctor::Monolog()->addDebug("        │");
+                                CloudDoctor::Monolog()->addNotice("        │");
                             }
                         }
                     }
@@ -257,12 +260,12 @@ class ComputeGroup extends Entity
 
     public function waitForRunning(): void
     {
-        CloudDoctor::Monolog()->addDebug("        │├┬ Waiting for Compute Group '{$this->getGroupName()}' to be running...");
+        CloudDoctor::Monolog()->addNotice("        │├┬ Waiting for Compute Group '{$this->getGroupName()}' to be running...");
         while (!$this->isRunning()) {
             sleep(1);
         }
-        CloudDoctor::Monolog()->addDebug("        ││└ Done!");
-        CloudDoctor::Monolog()->addDebug("        ││");
+        CloudDoctor::Monolog()->addNotice("        ││└ Done!");
+        CloudDoctor::Monolog()->addNotice("        ││");
     }
 
     public function isRunning(): bool
@@ -282,7 +285,7 @@ class ComputeGroup extends Entity
     public function runScript(string $name): void
     {
         if (isset($this->scripts[$name])) {
-            CloudDoctor::Monolog()->addDebug("        ├┬ Running Scripts: {$name}");
+            CloudDoctor::Monolog()->addNotice("        ├┬ Running Scripts: {$name}");
 
             foreach ($this->scripts[$name] as $s => $script) {
                 if ($this->getCompute()) {
@@ -315,26 +318,26 @@ class ComputeGroup extends Entity
                                 }
                             }
                             if (!empty(trim($response))) {
-                                CloudDoctor::Monolog()->addDebug("        │├┬ {$compute->getName()} Running '{$script['command']}'");
+                                CloudDoctor::Monolog()->addNotice("        │├┬ {$compute->getName()} Running '{$script['command']}'");
                                 $lines = explode("\n", $response);
                                 foreach ($lines as $i => $line) {
                                     if ($i == count($lines) - 1) {
-                                        CloudDoctor::Monolog()->addDebug("        ││└─ {$line}");
+                                        CloudDoctor::Monolog()->addNotice("        ││└─ {$line}");
                                     } else {
-                                        CloudDoctor::Monolog()->addDebug("        ││├─ {$line}");
+                                        CloudDoctor::Monolog()->addNotice("        ││├─ {$line}");
                                     }
                                 }
                             } else {
-                                CloudDoctor::Monolog()->addDebug("        │├─ {$compute->getName()} Running '{$script['command']}'");
+                                CloudDoctor::Monolog()->addNotice("        │├─ {$compute->getName()} Running '{$script['command']}'");
                             }
                         } else {
-                            CloudDoctor::Monolog()->addDebug("        │├─ {$compute->getName()} Skipping '{$script['command']}'");
+                            CloudDoctor::Monolog()->addNotice("        │├─ {$compute->getName()} Skipping '{$script['command']}'");
                         }
-                        CloudDoctor::Monolog()->addDebug("        ││");
+                        CloudDoctor::Monolog()->addNotice("        ││");
                     }
                 }
             }
-            CloudDoctor::Monolog()->addDebug("        │");
+            CloudDoctor::Monolog()->addNotice("        │");
         }
     }
 
@@ -377,7 +380,7 @@ class ComputeGroup extends Entity
         return $this;
     }
 
-    public function generateTls()
+    public function generateTlsCertificates()
     {
         $caPassword = CloudDoctor::generatePassword();
         $ips = "IP:" . ltrim(implode(",IP:", $this->getPublicIps()), ",");
@@ -387,44 +390,44 @@ class ComputeGroup extends Entity
         $this->generateTlsCleanup($masterCompute);
 
         // Making a CA...
-        CloudDoctor::Monolog()->addDebug("        ││├┬ Generating CA certificate");
-        $masterCompute->sshRunDebug("openssl genrsa -aes256 -passout pass:{$caPassword} -out ca-key.pem 4096");
-        $masterCompute->sshRunDebug("openssl req -new -x509 -passin pass:{$caPassword} -days 365 -key ca-key.pem -sha256 -out ca.pem -subj \"{$this->tls['subject']}\"");
-        $masterCompute->sshRunDebug("openssl x509 -outform der -in ca.pem -out ca.crt");
+        CloudDoctor::Monolog()->addNotice("        ││├┬ Generating CA certificate");
+        $masterCompute->sshRun("openssl genrsa -aes256 -passout pass:{$caPassword} -out ca-key.pem 4096");
+        $masterCompute->sshRun("openssl req -new -x509 -passin pass:{$caPassword} -days 365 -key ca-key.pem -sha256 -out ca.pem -subj \"{$this->tls['subject']}\"");
+        $masterCompute->sshRun("openssl x509 -outform der -in ca.pem -out ca.crt");
         $masterCompute->sshRun("chmod -v 0444 ca.pem ca.crt");
         $masterCompute->sshRun("chmod -v 0400 ca-key.pem");
         $masterCompute->sshDownloadFile("ca.pem", "config/ca.pem");
         $masterCompute->sshDownloadFile("ca-key.pem", "config/ca-key.pem");
         $masterCompute->sshDownloadFile("ca.crt", "config/ca.crt");
         file_put_contents("config/ca-pass.txt", $caPassword);
-        CloudDoctor::Monolog()->addDebug("        │││└ Downloaded ca.pem, ca.crt & ca-key.pem");
+        CloudDoctor::Monolog()->addNotice("        │││└ Downloaded ca.pem, ca.crt & ca-key.pem");
 
         // Making a server cert
-        CloudDoctor::Monolog()->addDebug("        ││├┬ Generating server certificate");
-        $masterCompute->sshRunDebug("openssl genrsa -out server-key.pem 4096");
-        $masterCompute->sshRunDebug("openssl req -subj \"/CN={$this->tls['common-name']}\" -sha256 -new -key server-key.pem -out server.csr");
-        $masterCompute->sshRunDebug("echo subjectAltName = DNS:{$this->tls['common-name']},{$ips} > extfile.cnf");
-        $masterCompute->sshRunDebug("echo extendedKeyUsage = serverAuth >> extfile.cnf");
-        $masterCompute->sshRunDebug("openssl x509 -req -days 365 -sha256 -in server.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out server-cert.pem -extfile extfile.cnf -passin pass:{$caPassword}");
+        CloudDoctor::Monolog()->addNotice("        ││├┬ Generating server certificate");
+        $masterCompute->sshRun("openssl genrsa -out server-key.pem 4096");
+        $masterCompute->sshRun("openssl req -subj \"/CN={$this->tls['common-name']}\" -sha256 -new -key server-key.pem -out server.csr");
+        $masterCompute->sshRun("echo subjectAltName = DNS:{$this->tls['common-name']},{$ips} > extfile.cnf");
+        $masterCompute->sshRun("echo extendedKeyUsage = serverAuth >> extfile.cnf");
+        $masterCompute->sshRun("openssl x509 -req -days 365 -sha256 -in server.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out server-cert.pem -extfile extfile.cnf -passin pass:{$caPassword}");
         $masterCompute->sshRun("chmod -v 0444 server-cert.pem");
         $masterCompute->sshRun("chmod -v 0400 server-key.pem");
         $masterCompute->sshDownloadFile("server-cert.pem", "config/server-cert.pem");
         $masterCompute->sshDownloadFile("server-key.pem", "config/server-key.pem");
         $masterCompute->sshDownloadFile("extfile.cnf", "config/server-extfile.cnf");
-        CloudDoctor::Monolog()->addDebug("        │││└ Downloaded server-cert.pem server-key.pem");
+        CloudDoctor::Monolog()->addNotice("        │││└ Downloaded server-cert.pem server-key.pem");
 
         // Now making a client cert
-        CloudDoctor::Monolog()->addDebug("        ││├┬ Generating client certificate");
-        $masterCompute->sshRunDebug("openssl genrsa -out client-key.pem 4096");
-        $masterCompute->sshRunDebug("openssl req -subj '/CN=client' -new -key client-key.pem -out client.csr");
-        $masterCompute->sshRunDebug("echo extendedKeyUsage = clientAuth >> extfile.cnf");
-        $masterCompute->sshRunDebug("openssl x509 -req -days 365 -sha256 -in client.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out client-cert.pem -extfile extfile.cnf -passin pass:{$caPassword}");
+        CloudDoctor::Monolog()->addNotice("        ││├┬ Generating client certificate");
+        $masterCompute->sshRun("openssl genrsa -out client-key.pem 4096");
+        $masterCompute->sshRun("openssl req -subj '/CN=client' -new -key client-key.pem -out client.csr");
+        $masterCompute->sshRun("echo extendedKeyUsage = clientAuth >> extfile.cnf");
+        $masterCompute->sshRun("openssl x509 -req -days 365 -sha256 -in client.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out client-cert.pem -extfile extfile.cnf -passin pass:{$caPassword}");
         $masterCompute->sshRun("chmod -v 0444 client-cert.pem");
         $masterCompute->sshRun("chmod -v 0400 client-key.pem");
         $masterCompute->sshDownloadFile("client-cert.pem", "config/client-cert.pem");
         $masterCompute->sshDownloadFile("client-key.pem", "config/client-key.pem");
         $masterCompute->sshDownloadFile("extfile.cnf", "config/client-extfile.cnf");
-        CloudDoctor::Monolog()->addDebug("        │││└ Downloaded client-cert.pem & client-key.pem");
+        CloudDoctor::Monolog()->addNotice("        │││└ Downloaded client-cert.pem & client-key.pem");
 
         // Post generation cleanup
         $this->generateTlsCleanup($masterCompute);
@@ -455,26 +458,26 @@ class ComputeGroup extends Entity
 
     public function setHostNames()
     {
-        CloudDoctor::Monolog()->addDebug("        │");
+        CloudDoctor::Monolog()->addNotice("        │");
         if ($this->getCompute()) {
             foreach ($this->getCompute() as $compute) {
-                CloudDoctor::Monolog()->addDebug("        ├┬ Hostname check: {$compute->getName()}");
+                CloudDoctor::Monolog()->addNotice("        ├┬ Hostname check: {$compute->getName()}");
                 $currentHostname = $compute->sshRun("hostname -f");
                 $newHostname = $compute->getHostName();
-                CloudDoctor::Monolog()->addDebug("        │├ Should be '{$newHostname}'.");
+                CloudDoctor::Monolog()->addNotice("        │├ Should be '{$newHostname}'.");
                 if ($currentHostname != $newHostname) {
                     // Set hostname
                     $compute->sshRun("echo \"{$newHostname}\" > /etc/hostname");
                     $compute->sshRun("echo -e \"127.0.0.1\t{$newHostname}\n$(cat /etc/hosts)\" > /etc/hosts");
                     $compute->sshUploadFile("assets/hostname.sh", "hostname.sh");
                     $compute->sshRun("/bin/bash hostname.sh; rm hostname.sh");
-                    CloudDoctor::Monolog()->addDebug("        │└ Renamed '{$currentHostname}' to '{$newHostname}'...");
+                    CloudDoctor::Monolog()->addNotice("        │└ Renamed '{$currentHostname}' to '{$newHostname}'...");
                 } else {
-                    CloudDoctor::Monolog()->addDebug("        │└ Hostname already correct.");
+                    CloudDoctor::Monolog()->addNotice("        │└ Hostname already correct.");
                 }
             }
         }
-        CloudDoctor::Monolog()->addDebug("        │");
+        CloudDoctor::Monolog()->addNotice("        │");
     }
 
     public function applyDockerEngineConfig()
@@ -519,7 +522,7 @@ class ComputeGroup extends Entity
                 }
             }
         }
-        CloudDoctor::Monolog()->addDebug("        │");
+        CloudDoctor::Monolog()->addNotice("        │");
     }
 
     public function restartDocker()
