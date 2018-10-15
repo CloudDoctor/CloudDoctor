@@ -13,16 +13,6 @@ interface ComputeInterface
 
     public function destroy(): bool;
 
-    public function sshOkay(): bool;
-
-    public function sshOkayWait() : void;
-
-    public function sshRun(string $command): string;
-
-    public function sshDownloadFile(string $remoteFile, string $localFile): bool;
-
-    public function sshUploadFile(string $localFile, string $remoteFile): bool;
-
     public function getSshConnection(): ?SFTP;
 
     public function isTransitioning(): bool;
@@ -31,21 +21,9 @@ interface ComputeInterface
 
     public function isStopped(): bool;
 
-    public function getName(): string;
-
-    public function getHostName(): string;
-
-    public function getHostNames(): array;
-
-    public function getCNames(): array;
-
     public function getPublicIp(): string;
 
     public function getComputeGroup(): ComputeGroup;
-
-    public function getTags() : array;
-
-    public function addTag(string $tag) : ComputeInterface;
 
     public function updateMetaData() : void;
 }

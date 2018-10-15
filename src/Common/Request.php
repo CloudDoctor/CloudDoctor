@@ -2,9 +2,10 @@
 
 namespace CloudDoctor\Common;
 
+use CloudDoctor\Interfaces\RequestInterface;
 use GuzzleHttp\Client as GuzzleClient;
 
-class Request
+class Request implements RequestInterface
 {
     /** @var GuzzleClient */
     protected $guzzle;

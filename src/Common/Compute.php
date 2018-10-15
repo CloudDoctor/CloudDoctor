@@ -5,6 +5,7 @@ namespace CloudDoctor\Common;
 use CloudDoctor\CloudDoctor;
 use CloudDoctor\Exceptions\CloudDoctorException;
 use CloudDoctor\Interfaces\ComputeInterface;
+use CloudDoctor\Interfaces\RequestInterface;
 use phpseclib\Net\SFTP;
 use phpseclib\Net\SSH2;
 
@@ -22,7 +23,7 @@ abstract class Compute extends Entity implements ComputeInterface
     protected $groupIndex;
     /** @var string */
     protected $region;
-    /** @var string */
+    /** @var string[] */
     protected $type;
     /** @var string[] */
     protected $tags;
@@ -36,9 +37,12 @@ abstract class Compute extends Entity implements ComputeInterface
     /** @var ComputeGroup */
     protected $computeGroup;
 
+    protected $config;
+
     public function __construct(ComputeGroup $computeGroup, $config = null)
     {
         $this->computeGroup = $computeGroup;
+        $this->config = $config;
 
         if ($config) {
             $this->setType($config['type']);
@@ -302,38 +306,58 @@ abstract class Compute extends Entity implements ComputeInterface
     }
 
     /**
-     * @return string
+     * @return string[]
      */
-    public function getRegion(): string
+    public function getRegion(): array
     {
         return $this->region;
     }
 
     /**
-     * @param string $region
+     * @param string[] $region
      * @return Compute
      */
-    public function setRegion(string $region): Compute
+    public function setRegion(array $region): Compute
     {
         $this->region = $region;
         return $this;
     }
 
     /**
-     * @return string
+     * @param string $region
+     * @return Compute
      */
-    public function getType(): string
+    public function addRegion(string $region): Compute
+    {
+        $this->region[] = $region;
+        return $this;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getType(): array
     {
         return $this->type;
+    }
+
+    /**
+     * @param string[] $type
+     * @return Compute
+     */
+    public function setType(array $type): Compute
+    {
+        $this->type = $type;
+        return $this;
     }
 
     /**
      * @param string $type
      * @return Compute
      */
-    public function setType(string $type): Compute
+    public function addType(string $type): Compute
     {
-        $this->type = $type;
+        $this->type[] = $type;
         return $this;
     }
 
@@ -358,16 +382,16 @@ abstract class Compute extends Entity implements ComputeInterface
     /**
      * @return Request
      */
-    public function getRequester(): Request
+    public function getRequester(): RequestInterface
     {
         return $this->requester;
     }
 
     /**
      * @param Request $requester
-     * @return Compute
+     * @return ComputeInterface
      */
-    public function setRequester(Request $requester): Compute
+    public function setRequester(RequestInterface $requester): ComputeInterface
     {
         $this->requester = $requester;
         return $this;
