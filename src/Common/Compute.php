@@ -37,6 +37,9 @@ abstract class Compute extends Entity implements ComputeInterface
     /** @var ComputeGroup */
     protected $computeGroup;
 
+    /** @var SSH2 */
+    private $sshConnection;
+
     protected $config;
 
     public function __construct(ComputeGroup $computeGroup, $config = null)
@@ -52,8 +55,10 @@ abstract class Compute extends Entity implements ComputeInterface
                 $this->setUsername($config['username']);
             }
             if (isset($config['tags'])) {
-                foreach ($config['tags'] as $tag) {
-                    $this->addTag($tag);
+                foreach ($config['tags'] as $key => $tag) {
+                    if(is_string($key)){
+                        $this->addTag($tag, $key);
+                    }
                 }
             }
         }
@@ -63,16 +68,71 @@ abstract class Compute extends Entity implements ComputeInterface
      * @param string $tag
      * @return Compute
      */
-    public function addTag(string $tag): ComputeInterface
+    public function addTag(string $tag, $key = null): ComputeInterface
     {
-        $this->tags[] = $tag;
+        if($key){
+            $this->tags[$key] = $tag;
+        }else {
+            $this->tags[] = $tag;
+        }
         $this->tags = array_unique($this->tags);
         return $this;
     }
 
-    public static function Factory(ComputeGroup $computeGroup = null, $config = null): Compute
+    public static function Factory(ComputeGroup $computeGroup = null, $config = null): ComputeInterface
     {
         return new Compute($computeGroup, $config);
+    }
+
+    public function getSshConnection(): ?SFTP
+    {
+        if ($this->sshConnection instanceof SSH2 && $this->sshConnection->isConnected()) {
+            return $this->sshConnection;
+        }
+        $publicIp = $this->getPublicIp();
+        if ($publicIp) {
+            for ($attempt=0; $attempt < 30; $attempt++) {
+                foreach ($this->getComputeGroup()->getSsh()['port'] as $port) {
+                    $fsock = @fsockopen($publicIp, $port, $errno, $errstr, 3);
+                    if ($fsock) {
+                        $ssh = new SFTP($fsock);
+                        #\Kint::dump(CloudDoctor::$privateKeys);
+                        foreach (CloudDoctor::$privateKeys as $privateKey) {
+                            $key = new RSA();
+                            $key->loadKey($privateKey);
+                            #CloudDoctor::Monolog()->addDebug("    > Logging in to {$publicIp} on port {$port} as '{$this->getUsername()}' with key ...");
+                            if ($ssh->login($this->getUsername(), $key)) {
+                                #CloudDoctor::Monolog()->addDebug("     > Logging in [OKAY]");
+                                $this->sshConnection = $ssh;
+                                return $this->sshConnection;
+                            } else {
+                                #CloudDoctor::Monolog()->addDebug("     > Logging in [FAIL]");
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        } else {
+            return null;
+        }
+    }
+
+    public function isValid(): bool
+    {
+        $this->validityReasons = [];
+        $this->testValidity();
+        return count($this->validityReasons) == 0;
+    }
+    
+    protected function testValidity() : void
+    {
+        if (strlen($this->getName()) < 3) {
+            $this->validityReasons[] = sprintf("Name '%s' is too short! Minimum is %d, length was %d.", $this->getName(), 3, strlen($this->getName()));
+        }
+        if (strlen($this->getName()) > 32) {
+            $this->validityReasons[] = sprintf("Name '%s' is too long! Maximum is %d, length was %d.", $this->getName(), 32, strlen($this->getName()));
+        }
     }
 
     public function sshDownloadFile(string $remotePath, string $localPath): bool
@@ -178,13 +238,13 @@ abstract class Compute extends Entity implements ComputeInterface
      * @param ComputeGroup $computeGroup
      * @return Compute
      */
-    public function setComputeGroup(ComputeGroup $computeGroup): Compute
+    public function setComputeGroup(ComputeGroup $computeGroup): ComputeInterface
     {
         $this->computeGroup = $computeGroup;
         return $this;
     }
 
-    protected function recalculateHostname(): Compute
+    protected function recalculateHostname(): ComputeInterface
     {
         $this->hostName = sprintf($this->getHostNameFormat(), $this->getGroupIndex());
         return $this;
@@ -202,7 +262,7 @@ abstract class Compute extends Entity implements ComputeInterface
      * @param string $hostNameFormat
      * @return Compute
      */
-    public function setHostNameFormat(string $hostNameFormat): Compute
+    public function setHostNameFormat(string $hostNameFormat): ComputeInterface
     {
         $this->hostNameFormat = $hostNameFormat;
         return $this;
@@ -220,7 +280,7 @@ abstract class Compute extends Entity implements ComputeInterface
      * @param int $groupIndex
      * @return Compute
      */
-    public function setGroupIndex(int $groupIndex): Compute
+    public function setGroupIndex(int $groupIndex): ComputeInterface
     {
         $this->groupIndex = $groupIndex;
         if (isset($this->nameFormat)) {
@@ -229,7 +289,7 @@ abstract class Compute extends Entity implements ComputeInterface
         return $this;
     }
 
-    protected function recalculateName(): Compute
+    protected function recalculateName(): ComputeInterface
     {
         $this->name = sprintf($this->getNameFormat(), $this->getGroupIndex());
         return $this;
@@ -247,7 +307,7 @@ abstract class Compute extends Entity implements ComputeInterface
      * @param string $nameFormat
      * @return Compute
      */
-    public function setNameFormat(string $nameFormat): Compute
+    public function setNameFormat(string $nameFormat): ComputeInterface
     {
         $this->nameFormat = $nameFormat;
         if (isset($this->groupIndex)) {
@@ -317,7 +377,7 @@ abstract class Compute extends Entity implements ComputeInterface
      * @param string[] $region
      * @return Compute
      */
-    public function setRegion(array $region): Compute
+    public function setRegion(array $region): ComputeInterface
     {
         $this->region = $region;
         return $this;
@@ -327,7 +387,7 @@ abstract class Compute extends Entity implements ComputeInterface
      * @param string $region
      * @return Compute
      */
-    public function addRegion(string $region): Compute
+    public function addRegion(string $region): ComputeInterface
     {
         $this->region[] = $region;
         return $this;
@@ -345,7 +405,7 @@ abstract class Compute extends Entity implements ComputeInterface
      * @param string[] $type
      * @return Compute
      */
-    public function setType(array $type): Compute
+    public function setType(array $type): ComputeInterface
     {
         $this->type = $type;
         return $this;
@@ -355,7 +415,7 @@ abstract class Compute extends Entity implements ComputeInterface
      * @param string $type
      * @return Compute
      */
-    public function addType(string $type): Compute
+    public function addType(string $type): ComputeInterface
     {
         $this->type[] = $type;
         return $this;
@@ -373,7 +433,7 @@ abstract class Compute extends Entity implements ComputeInterface
      * @param string[] $tags
      * @return Compute
      */
-    public function setTags(array $tags): Compute
+    public function setTags(array $tags): ComputeInterface
     {
         $this->tags = $tags;
         return $this;
@@ -409,13 +469,13 @@ abstract class Compute extends Entity implements ComputeInterface
      * @param string[] $authorizedKeys
      * @return Compute
      */
-    public function setAuthorizedKeys(array $authorizedKeys): Compute
+    public function setAuthorizedKeys(array $authorizedKeys): ComputeInterface
     {
         $this->authorizedKeys = $authorizedKeys;
         return $this;
     }
 
-    public function addAuthorizedKey(string $authorizedKey): Compute
+    public function addAuthorizedKey(string $authorizedKey): ComputeInterface
     {
         $this->authorizedKeys[] = $authorizedKey;
         return $this;
@@ -433,7 +493,7 @@ abstract class Compute extends Entity implements ComputeInterface
      * @param string $username
      * @return Compute
      */
-    public function setUsername(string $username): Compute
+    public function setUsername(string $username): ComputeInterface
     {
         $this->username = $username;
         return $this;

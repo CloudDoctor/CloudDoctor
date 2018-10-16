@@ -12,16 +12,14 @@ interface ComputeInterface
     public function exists(): bool;
 
     public function destroy(): bool;
-
-    public function getSshConnection(): ?SFTP;
-
+    
     public function isTransitioning(): bool;
 
     public function isRunning(): bool;
 
     public function isStopped(): bool;
 
-    public function getPublicIp(): string;
+    public function getPublicIp(): ?string;
 
     public function getComputeGroup(): ComputeGroup;
 

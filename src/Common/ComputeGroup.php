@@ -6,6 +6,7 @@ use CloudDoctor\CloudDoctor;
 use CloudDoctor\Exceptions\CloudDoctorException;
 use CloudDoctor\Exceptions\CloudScriptExecutionException;
 use CloudDoctor\Interfaces\ComputeInterface;
+use CloudDoctor\Interfaces\RequestInterface;
 
 class ComputeGroup extends Entity
 {
@@ -38,7 +39,12 @@ class ComputeGroup extends Entity
     /** @var Request */
     private $request;
 
-    public function __construct(CloudDoctor $cloudDoctor, $groupName = null, $config = null, Request $requester)
+    public function __construct(
+        CloudDoctor $cloudDoctor,
+        $groupName = null,
+        $config = null,
+        RequestInterface $requester
+    )
     {
         $this->cloudDoctor = $cloudDoctor;
         $this->request = $requester;
@@ -119,9 +125,8 @@ class ComputeGroup extends Entity
         return $this;
     }
 
-    public static function Factory(CloudDoctor $cloudDoctor, $groupName = null, $config = null, Request $request): ComputeGroup
+    public static function Factory(CloudDoctor $cloudDoctor, $groupName = null, $config = null, RequestInterface $request): ComputeGroup
     {
-
         $called = get_called_class();
         return new $called($cloudDoctor, $groupName, $config, $request);
     }
@@ -178,7 +183,7 @@ class ComputeGroup extends Entity
      */
     public function addCompute(Compute $compute)
     {
-        $compute->addTag($this->getComputeGroupTag());
+        $compute->addTag($this->getComputeGroupTag(),'CloudDoctor_ComputeGroupTag');
         foreach ($this->getTags() as $tag) {
             $compute->addTag($tag);
         }
