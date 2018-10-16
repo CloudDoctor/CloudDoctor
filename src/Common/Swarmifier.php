@@ -52,7 +52,7 @@ class Swarmifier
     public function assertDefaultNetworks() : void
     {
         $chosenManager = $this->pickRandomManager();
-        foreach($this->defaultNetworks as $name => $config) {
+        foreach ($this->defaultNetworks as $name => $config) {
             CloudDoctor::Monolog()->addNotice("        ├┬ Network {$name}:");
             $command = "docker network create ";
             if (isset($config['attachable']) && $config['attachable'] == true) {

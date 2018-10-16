@@ -126,9 +126,9 @@ abstract class Compute extends Entity implements ComputeInterface
         $connected = false;
         while (!$connected) {
             $connection = $this->getSshConnection();
-            if($connection != null) {
+            if ($connection != null) {
                 $connected = $connection->isConnected();
-            }else {
+            } else {
                 sleep(0.5);
                 if (microtime(true) - $start > $timeoutSeconds) {
                     throw new CloudDoctorException("Failure to run SSH command on '{$this->getName()}': {$command}");
@@ -137,7 +137,7 @@ abstract class Compute extends Entity implements ComputeInterface
         }
 
         $start = microtime(true);
-        while($attempts < $maxAttempts){
+        while ($attempts < $maxAttempts) {
             $attempts++;
             if ($connection instanceof SSH2) {
                 return trim($connection->exec(" " . $command));
@@ -297,7 +297,7 @@ abstract class Compute extends Entity implements ComputeInterface
     public function sshOkayWait() : void
     {
         #echo "Waiting for SSH to come up...";
-        while(!$this->sshOkay()){
+        while (!$this->sshOkay()) {
             // Wait for SSH to come up...
             sleep(0.5);
             #echo ".";

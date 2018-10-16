@@ -114,7 +114,7 @@ class CloudDoctor
 
     private function arrayOverwrite(array $array1, array $array2 = null)
     {
-        if($array2 === null || !is_array($array2) || count($array2) == 0) {
+        if ($array2 === null || !is_array($array2) || count($array2) == 0) {
             return $array1;
         }
         $merged = $array1;
@@ -451,8 +451,8 @@ class CloudDoctor
     public function watch(Cli $cli) : void
     {
         self::Monolog()->addNotice("Watching for changes...");
-        while(true){
-            if($this->configFilesChanged()){
+        while (true) {
+            if ($this->configFilesChanged()) {
                 $cli->assertFromFiles();
                 $this->scale();
             } else {
