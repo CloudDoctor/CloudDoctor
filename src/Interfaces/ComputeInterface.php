@@ -19,7 +19,7 @@ interface ComputeInterface
 
     public function isStopped(): bool;
 
-    public function getPublicIp(): ?string;
+    public function getIp(): ?string;
 
     public function getComputeGroup(): ComputeGroup;
 

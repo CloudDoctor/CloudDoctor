@@ -44,8 +44,7 @@ class ComputeGroup extends Entity
         $groupName = null,
         $config = null,
         RequestInterface $requester
-    )
-    {
+    ) {
         $this->cloudDoctor = $cloudDoctor;
         $this->request = $requester;
         if ($groupName) {
@@ -183,7 +182,7 @@ class ComputeGroup extends Entity
      */
     public function addCompute(Compute $compute)
     {
-        $compute->addTag($this->getComputeGroupTag(),'CloudDoctor_ComputeGroupTag');
+        $compute->addTag($this->getComputeGroupTag(), 'CloudDoctor_ComputeGroupTag');
         foreach ($this->getTags() as $tag) {
             $compute->addTag($tag);
         }
@@ -202,19 +201,20 @@ class ComputeGroup extends Entity
                     $compute->deploy();
                     $compute->sshOkayWait();
                 } else {
-                    CloudDoctor::Monolog()->addNotice("        ││├ {$compute->getName()} already exists...");
+                    CloudDoctor::Monolog()->addNotice("        ││├ {$compute->getName()} already exists ...");
                     if ($compute->isTransitioning()) {
                         CloudDoctor::Monolog()->addNotice("        ││└ {$compute->getName()} is changing state!...");
                     }
                     if ($compute->isRunning()) {
+                        CloudDoctor::Monolog()->addNotice("        ││├┬ Testing SSH up...");
                         if (!$compute->sshOkay() || self::ALWAYS_REDEPLOY) {
-                            CloudDoctor::Monolog()->addNotice("        ││├┬ {$compute->getName()} cannot be ssh'd into!...");
+                            CloudDoctor::Monolog()->addNotice("        │││├ {$compute->getName()} cannot be ssh'd into!...");
                             $compute->destroy();
                             CloudDoctor::Monolog()->addNotice("        │││└ {$compute->getName()} Destroyed!");
                             $compute->deploy();
                             $compute->sshOkayWait();
                         } else {
-                            CloudDoctor::Monolog()->addNotice("        ││└ Already Running!");
+                            CloudDoctor::Monolog()->addNotice("        │││└ Already Running!");
                             if ($i != count($this->getCompute()) - 1) {
                                 CloudDoctor::Monolog()->addNotice("        ││");
                             } else {

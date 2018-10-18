@@ -56,7 +56,7 @@ abstract class Compute extends Entity implements ComputeInterface
             }
             if (isset($config['tags'])) {
                 foreach ($config['tags'] as $key => $tag) {
-                    if(is_string($key)){
+                    if (is_string($key)) {
                         $this->addTag($tag, $key);
                     }
                 }
@@ -70,9 +70,9 @@ abstract class Compute extends Entity implements ComputeInterface
      */
     public function addTag(string $tag, $key = null): ComputeInterface
     {
-        if($key){
+        if ($key) {
             $this->tags[$key] = $tag;
-        }else {
+        } else {
             $this->tags[] = $tag;
         }
         $this->tags = array_unique($this->tags);
@@ -89,10 +89,15 @@ abstract class Compute extends Entity implements ComputeInterface
         if ($this->sshConnection instanceof SSH2 && $this->sshConnection->isConnected()) {
             return $this->sshConnection;
         }
-        $publicIp = $this->getPublicIp();
+        $tick = 0;
+        echo "\n";
+        $publicIp = $this->getIp();
         if ($publicIp) {
-            for ($attempt=0; $attempt < 30; $attempt++) {
+            for ($attempt=0; $attempt < 5; $attempt++) {
                 foreach ($this->getComputeGroup()->getSsh()['port'] as $port) {
+                    $tick++;
+                    $this->blankLine();
+                    echo "\r{$this->spinner($tick)} Attempting to ssh into {$publicIp}:{$port} ... Attempt {$attempt}.";
                     $fsock = @fsockopen($publicIp, $port, $errno, $errstr, 3);
                     if ($fsock) {
                         $ssh = new SFTP($fsock);
@@ -522,5 +527,19 @@ abstract class Compute extends Entity implements ComputeInterface
         }
 
         return false;
+    }
+
+    protected function spinner($i) : string
+    {
+        switch($i%4){
+            case 0: return '|';
+            case 1: return '/';
+            case 2: return '-';
+            case 3: return '\\';
+        }
+    }
+
+    protected function blankLine() : void{
+        echo str_pad("\r", 40," ", STR_PAD_RIGHT);
     }
 }

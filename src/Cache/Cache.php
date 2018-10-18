@@ -14,7 +14,7 @@ class Cache
 
     public function __construct()
     {
-        if(file_exists($this->cacheFile)){
+        if (file_exists($this->cacheFile)) {
             $this->cacheData = unserialize(file_get_contents($this->cacheFile));
         }
     }
@@ -64,34 +64,34 @@ class Cache
 
     public function _cleanAged() : void
     {
-        foreach($this->cacheData as $key => $value){
-            if($key != '_ages'){
-                if(!isset($this->cacheData['_ages'][$key])){
+        foreach ($this->cacheData as $key => $value) {
+            if ($key != '_ages') {
+                if (!isset($this->cacheData['_ages'][$key])) {
                     unset($this->cacheData[$key]);
                 }
                 $expiry = $this->cacheData['_ages'][$key];
                 $age = microtime(true) - $expiry;
-                if($age > Cache::MAX_AGE_SECONDS){
+                if ($age > Cache::MAX_AGE_SECONDS) {
                     unset($this->cacheData[$key], $this->cacheData['_ages'][$key]);
                 }
             }
         }
     }
 
-    static public function Instance() : Cache
+    public static function Instance() : Cache
     {
-        if(!self::$instance){
+        if (!self::$instance) {
             self::$instance = new self();
         }
         return self::$instance;
     }
 
-    static public function Write($value) : void
+    public static function Write($value) : void
     {
         self::Instance()->_write($value);
     }
 
-    static public function Read()
+    public static function Read()
     {
         return self::Instance()->_has() ? self::Instance()->_read() : null;
     }
