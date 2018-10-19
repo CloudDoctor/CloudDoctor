@@ -90,9 +90,9 @@ abstract class Compute extends Entity implements ComputeInterface
             return $this->sshConnection;
         }
         $tick = 0;
-        echo "\n";
         $publicIp = $this->getIp();
         if ($publicIp) {
+            echo "\n";
             for ($attempt=0; $attempt < 5; $attempt++) {
                 foreach ($this->getComputeGroup()->getSsh()['port'] as $port) {
                     $tick++;
@@ -117,6 +117,7 @@ abstract class Compute extends Entity implements ComputeInterface
                     }
                 }
             }
+            echo "\n";
             return null;
         } else {
             return null;

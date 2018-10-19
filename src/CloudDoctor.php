@@ -139,6 +139,7 @@ class CloudDoctor
         if (!isset($cloudDefinition['authorized-keys']) && getenv('HOME') && file_exists(getenv('HOME') . "/.ssh/id_rsa.pub")) {
             self::Monolog()->warning("No .authorized-keys element in config, assuming ~/.ssh/id_rsa.pub");
             $cloudDefinition['authorized-keys'][] = trim(file_get_contents(getenv('HOME') . "/.ssh/id_rsa.pub"));
+            #self::$publicKeys[] = trim(file_get_contents(getenv('HOME') . "/.ssh/id_rsa.pub"))
             self::$privateKeys[] = trim(file_get_contents(getenv('HOME') . "/.ssh/id_rsa"));
             //@todo handle privatekeys coming from the config rather than files.
         }
