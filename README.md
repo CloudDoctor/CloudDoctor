@@ -1,3 +1,2 @@
-# Babysitter
+# Cloud-Doctor
 
-An automated node-babysitter.
