@@ -138,7 +138,7 @@ class CloudDoctor
     {
         if (!isset($cloudDefinition['authorized-keys']) && getenv('HOME') && file_exists(getenv('HOME') . "/.ssh/id_rsa.pub")) {
             self::Monolog()->warning("No .authorized-keys element in config, assuming ~/.ssh/id_rsa.pub");
-            $cloudDefinition['authorized-keys'][] = trim(file_get_contents(getenv('HOME') . "/.ssh/id_rsa.pub"));
+            $cloudDefinition['authorized-keys']['default'] = trim(file_get_contents(getenv('HOME') . "/.ssh/id_rsa.pub"));
             #self::$publicKeys[] = trim(file_get_contents(getenv('HOME') . "/.ssh/id_rsa.pub"))
             self::$privateKeys[] = trim(file_get_contents(getenv('HOME') . "/.ssh/id_rsa"));
             //@todo handle privatekeys coming from the config rather than files.
@@ -154,7 +154,10 @@ class CloudDoctor
         self::Monolog()->debug("Cloud Doctor: {$this->getName()}");
         $this->createRequesters($cloudDefinition['credentials']);
         $this->createDnsControllers($cloudDefinition['credentials']);
-        $this->createInstances($cloudDefinition['instances'], $cloudDefinition['authorized-keys']);
+        $this->createInstances(
+            $cloudDefinition['instances'],
+            $cloudDefinition['authorized-keys']
+        );
         return $this;
     }
 
@@ -244,8 +247,8 @@ class CloudDoctor
                 $compute = new $computeClass($computeGroup, $provider);
                 $compute->setGroupIndex($i);
                 $compute->setRequester(self::$requesters[$providerName]);
-                foreach ($authorizedKeys as $authorizedKey) {
-                    $compute->addAuthorizedKey($authorizedKey);
+                foreach ($authorizedKeys as $keyName => $authorizedKey) {
+                    $compute->addAuthorizedKey($keyName, $authorizedKey);
                 }
                 $computeGroup->addCompute($compute);
             }

@@ -6,6 +6,7 @@ use CloudDoctor\CloudDoctor;
 use CloudDoctor\Exceptions\CloudDoctorException;
 use CloudDoctor\Interfaces\ComputeInterface;
 use CloudDoctor\Interfaces\RequestInterface;
+use phpseclib\Crypt\RSA;
 use phpseclib\Net\SFTP;
 use phpseclib\Net\SSH2;
 
@@ -468,6 +469,7 @@ abstract class Compute extends Entity implements ComputeInterface
      */
     public function getAuthorizedKeys(): array
     {
+        ksort($this->authorizedKeys);
         return $this->authorizedKeys;
     }
 
@@ -481,9 +483,9 @@ abstract class Compute extends Entity implements ComputeInterface
         return $this;
     }
 
-    public function addAuthorizedKey(string $authorizedKey): ComputeInterface
+    public function addAuthorizedKey(string $keyName, string $authorizedKey): ComputeInterface
     {
-        $this->authorizedKeys[] = $authorizedKey;
+        $this->authorizedKeys[$keyName] = $authorizedKey;
         return $this;
     }
 
