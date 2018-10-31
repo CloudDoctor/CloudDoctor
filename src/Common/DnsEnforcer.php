@@ -45,9 +45,7 @@ class DnsEnforcer
                 foreach ($dnsList['a'] as $domain => $ips) {
                     if (!$dnsController->verifyRecordCorrect($domain, $ips)) {
                         $dnsController->removeRecord('a', $domain);
-                        foreach ($ips as $ip) {
-                            $dnsController->createRecord('a', $domain, $ip);
-                        }
+                        $dnsController->createRecords('a', $domain, $ips);
                     } else {
                         CloudDoctor::Monolog()->addNotice("        │├ Already Complete: {$domain}");
                     }
@@ -57,9 +55,7 @@ class DnsEnforcer
                 foreach ($dnsList['cnames'] as $domain => $values) {
                     if (!$dnsController->verifyRecordCorrect($domain, $values)) {
                         $dnsController->removeRecord('cname', $domain);
-                        foreach ($values as $value) {
-                            $dnsController->createRecord('cname', $domain, $value);
-                        }
+                        $dnsController->createRecords('cname', $domain, $values);
                     } else {
                         CloudDoctor::Monolog()->addNotice("        │├ Already Complete: {$domain}");
                     }
