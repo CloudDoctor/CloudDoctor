@@ -2,9 +2,6 @@
 
 namespace CloudDoctor\Interfaces;
 
-use CloudDoctor\Common\ComputeGroup;
-use phpseclib\Net\SFTP;
-
 interface ComputeGroupInterface
 {
     public function deploy(): void;

@@ -489,10 +489,11 @@ class ComputeGroup extends Entity
     {
         if ($this->getCompute()) {
             foreach ($this->getCompute() as $compute) {
+                /** @var ComputeInterface $compute */
                 $hosts = [];
                 $hosts[] = 'unix:///var/run/docker.sock';
                 if ($compute->getComputeGroup()->isTls()) {
-                    $hosts[] = 'tcp://' . $compute->getPublicIp() . ":2376";
+                    $hosts[] = 'tcp://' . $compute->getIp() . ":2376";
                 }
                 $hosts[] = 'tcp://127.0.0.1:2376';
 

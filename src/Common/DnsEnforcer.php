@@ -4,12 +4,13 @@ namespace CloudDoctor\Common;
 
 use CloudDoctor\CloudDoctor;
 use CloudDoctor\Interfaces\ComputeInterface;
+use CloudDoctor\Interfaces\DNSControllerInterface;
 use CloudDoctor\Linode\DNSController;
 
 class DnsEnforcer
 {
 
-    /** @var DNSController[] */
+    /** @var DNSControllerInterface[] */
     protected $dnsControllers;
     /** @var ComputeInterface[] */
     protected $computes;
@@ -32,7 +33,7 @@ class DnsEnforcer
         foreach ($this->getComputes() as $compute) {
             /** @var $compute ComputeInterface */
             foreach ($compute->getHostNames() as $hostName) {
-                $dnsList['a'][$hostName][] = $compute->getPublicIp();
+                $dnsList['a'][$hostName][] = $compute->getIp();
             }
             foreach ($compute->getCNames() as $cname) {
                 $dnsList['cnames'][$cname][] = $compute->getHostName();
@@ -43,7 +44,7 @@ class DnsEnforcer
             if (isset($dnsList['a']) && count($dnsList['a']) > 0) {
                 foreach ($dnsList['a'] as $domain => $ips) {
                     if (!$dnsController->verifyRecordCorrect($domain, $ips)) {
-                        $dnsController->removeMatchingDomains('a', $domain);
+                        $dnsController->removeRecord('a', $domain);
                         foreach ($ips as $ip) {
                             $dnsController->createRecord('a', $domain, $ip);
                         }
@@ -55,7 +56,7 @@ class DnsEnforcer
             if (isset($dnsList['cnames']) && count($dnsList['cnames']) > 0) {
                 foreach ($dnsList['cnames'] as $domain => $values) {
                     if (!$dnsController->verifyRecordCorrect($domain, $values)) {
-                        $dnsController->removeMatchingDomains('cname', $domain);
+                        $dnsController->removeRecord('cname', $domain);
                         foreach ($values as $value) {
                             $dnsController->createRecord('cname', $domain, $value);
                         }

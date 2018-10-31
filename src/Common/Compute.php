@@ -82,7 +82,8 @@ abstract class Compute extends Entity implements ComputeInterface
 
     public static function Factory(ComputeGroup $computeGroup = null, $config = null): ComputeInterface
     {
-        return new Compute($computeGroup, $config);
+        $calledClass = get_called_class();
+        return new $calledClass($computeGroup, $config);
     }
 
     public function getSshConnection(): ?SFTP
@@ -93,12 +94,11 @@ abstract class Compute extends Entity implements ComputeInterface
         $tick = 0;
         $publicIp = $this->getIp();
         if ($publicIp) {
-            echo "\n";
             for ($attempt=0; $attempt < 5; $attempt++) {
                 foreach ($this->getComputeGroup()->getSsh()['port'] as $port) {
                     $tick++;
                     $this->blankLine();
-                    echo "\r{$this->spinner($tick)} Attempting to ssh into {$publicIp}:{$port} ... Attempt {$attempt}.";
+                    echo "{$this->spinner($tick)} Attempting to ssh into {$publicIp}:{$port} ... Attempt {$attempt}.";
                     $fsock = @fsockopen($publicIp, $port, $errno, $errstr, 3);
                     if ($fsock) {
                         $ssh = new SFTP($fsock);
@@ -110,6 +110,7 @@ abstract class Compute extends Entity implements ComputeInterface
                             if ($ssh->login($this->getUsername(), $key)) {
                                 #CloudDoctor::Monolog()->addDebug("     > Logging in [OKAY]");
                                 $this->sshConnection = $ssh;
+                                $this->blankLine();
                                 return $this->sshConnection;
                             } else {
                                 #CloudDoctor::Monolog()->addDebug("     > Logging in [FAIL]");
@@ -543,6 +544,6 @@ abstract class Compute extends Entity implements ComputeInterface
     }
 
     protected function blankLine() : void{
-        echo str_pad("\r", 40," ", STR_PAD_RIGHT);
+        echo str_pad("\r", 40," ", STR_PAD_RIGHT) . "\r";
     }
 }
