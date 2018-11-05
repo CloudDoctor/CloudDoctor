@@ -86,7 +86,7 @@ abstract class Compute extends Entity implements ComputeInterface
         return new $calledClass($computeGroup, $config);
     }
 
-    public function getSshConnection(): ?SFTP
+    public function getSshConnection(int $attemptLimit = 5): ?SFTP
     {
         if ($this->sshConnection instanceof SSH2 && $this->sshConnection->isConnected()) {
             return $this->sshConnection;
@@ -94,7 +94,7 @@ abstract class Compute extends Entity implements ComputeInterface
         $tick = 0;
         $publicIp = $this->getIp();
         if ($publicIp) {
-            for ($attempt=0; $attempt < 5; $attempt++) {
+            for ($attempt=0; $attempt < $attemptLimit; $attempt++) {
                 foreach ($this->getComputeGroup()->getSsh()['port'] as $port) {
                     $tick++;
                     $this->blankLine();
@@ -352,25 +352,21 @@ abstract class Compute extends Entity implements ComputeInterface
         return $hostnames;
     }
 
-    public function sshOkay(): bool
+    public function sshOkay(int $attempts = 5): bool
     {
-        $ssh = $this->getSshConnection();
+        $ssh = $this->getSshConnection($attempts);
         if (!$ssh) {
             return false;
         }
-        #$ssh->disconnect();
         return true;
     }
 
     public function sshOkayWait() : void
     {
-        #echo "Waiting for SSH to come up...";
-        while (!$this->sshOkay()) {
+        while (!$this->sshOkay(1000)) {
             // Wait for SSH to come up...
             sleep(0.5);
-            #echo ".";
         }
-        #echo "\n";
     }
 
     /**
