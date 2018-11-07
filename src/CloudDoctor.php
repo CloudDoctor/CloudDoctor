@@ -399,12 +399,14 @@ class CloudDoctor
         self::Monolog()->addNotice("SCHEMA──┐");
         foreach (self::$computeGroups as $computeGroup) {
             CloudDoctor::Monolog()->addNotice("        ├┬ Compute Group: {$computeGroup->getGroupName()}");
-            foreach ($computeGroup->getCompute() as $compute) {
-                CloudDoctor::Monolog()->addNotice("        │├┬ Compute: {$compute->getName()}");
-                CloudDoctor::Monolog()->addNotice("        ││├ Hostname: {$compute->getHostName()}");
-                CloudDoctor::Monolog()->addNotice("        ││├┬ DNS Entries:");
-                foreach ($compute->getHostNames() as $hostname) {
-                    CloudDoctor::Monolog()->addNotice("        │││├ {$hostname}");
+            if(is_array($computeGroup->getCompute())) {
+                foreach ($computeGroup->getCompute() as $compute) {
+                    CloudDoctor::Monolog()->addNotice("        │├┬ Compute: {$compute->getName()}");
+                    CloudDoctor::Monolog()->addNotice("        ││├ Hostname: {$compute->getHostName()}");
+                    CloudDoctor::Monolog()->addNotice("        ││├┬ DNS Entries:");
+                    foreach ($compute->getHostNames() as $hostname) {
+                        CloudDoctor::Monolog()->addNotice("        │││├ {$hostname}");
+                    }
                 }
             }
             CloudDoctor::Monolog()->addNotice("        │");
