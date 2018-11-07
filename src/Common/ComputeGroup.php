@@ -659,8 +659,10 @@ class ComputeGroup extends Entity
     
     public function updateMetaData() : void
     {
-        foreach ($this->getCompute() as $compute) {
-            $compute->updateMetaData();
+        if(is_array($this->getCompute())) {
+            foreach ($this->getCompute() as $compute) {
+                $compute->updateMetaData();
+            }
         }
     }
 }
