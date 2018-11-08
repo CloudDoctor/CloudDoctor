@@ -98,7 +98,8 @@ abstract class Compute extends Entity implements ComputeInterface
                 foreach ($this->getComputeGroup()->getSsh()['port'] as $port) {
                     $tick++;
                     $this->blankLine();
-                    echo "{$this->spinner($tick)} Attempting to ssh into {$publicIp}:{$port} ... Attempt {$attempt}.";
+                    //echo "{$this->spinner($tick)} Attempting to ssh into {$publicIp}:{$port} ... Attempt {$attempt}.";
+                    CloudDoctor::Monolog()->addDebug("    > Attempting to ssh into {$publicIp}:{$port} ... Attempt {$attempt}");
                     $fsock = @fsockopen($publicIp, $port, $errno, $errstr, 3);
                     if ($fsock) {
                         $ssh = new SFTP($fsock);
@@ -106,14 +107,14 @@ abstract class Compute extends Entity implements ComputeInterface
                         foreach (CloudDoctor::$privateKeys as $privateKey) {
                             $key = new RSA();
                             $key->loadKey($privateKey);
-                            #CloudDoctor::Monolog()->addDebug("    > Logging in to {$publicIp} on port {$port} as '{$this->getUsername()}' with key ...");
+                            CloudDoctor::Monolog()->addDebug("    > Logging in to {$publicIp} on port {$port} as '{$this->getUsername()}' with key ...");
                             if ($ssh->login($this->getUsername(), $key)) {
-                                #CloudDoctor::Monolog()->addDebug("     > Logging in [OKAY]");
+                                CloudDoctor::Monolog()->addDebug("     > Logging in [OKAY]");
                                 $this->sshConnection = $ssh;
-                                $this->blankLine();
+                                //$this->blankLine();
                                 return $this->sshConnection;
                             } else {
-                                #CloudDoctor::Monolog()->addDebug("     > Logging in [FAIL]");
+                                CloudDoctor::Monolog()->addDebug("     > Logging in [FAIL]");
                             }
                         }
                     }

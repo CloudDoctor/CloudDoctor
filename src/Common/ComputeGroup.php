@@ -10,7 +10,6 @@ use CloudDoctor\Interfaces\RequestInterface;
 
 class ComputeGroup extends Entity
 {
-    const ALWAYS_REDEPLOY = false;
 
     /** @var string */
     protected $role = 'worker';
@@ -207,8 +206,11 @@ class ComputeGroup extends Entity
                     }
                     if ($compute->isRunning()) {
                         CloudDoctor::Monolog()->addNotice("        ││├┬ Testing SSH up...");
-                        if (!$compute->sshOkay() || self::ALWAYS_REDEPLOY) {
+                        \Kint::dump($compute->sshOkay());
+                        exit;
+                        if (!$compute->sshOkay()) {
                             CloudDoctor::Monolog()->addNotice("        │││├ {$compute->getName()} cannot be ssh'd into!...");
+                            #die("\n\nStopped execution here\n\n");
                             $compute->destroy();
                             CloudDoctor::Monolog()->addNotice("        │││└ {$compute->getName()} Destroyed!");
                             $compute->deploy();
